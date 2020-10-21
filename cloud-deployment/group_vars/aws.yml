@@ -1,0 +1,24 @@
+# ---
+
+# AWS Region
+aws_region:     "us-east-1"
+
+# VPC Information
+vpc_name:       "AutoPT-VPC"
+vpc_cidr_block: "10.0.0.0/16"
+
+# For Security Group Rule
+# Subnets
+public_subnet_1_cidr:  "10.0.0.0/24"
+private_subnet_1_cidr: "10.0.1.0/24"
+
+# Shippable Params Res to store state
+aws_state: "present"
+
+key_pair_usage: "sam-pub"
+
+my_ip: "73.227.34.250"
+
+aws_access_key: ""
+aws_secret_key: ""
+aws_token: ""

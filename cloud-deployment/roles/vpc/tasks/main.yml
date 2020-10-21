@@ -1,0 +1,245 @@
+---
+
+# roles/vpc/tasks/main.yml
+
+
+# First task : creating the VPC.
+# We are using the variables set in the vars.yml file.
+# The module gives us back its result,
+# which contains information about our new VPC. 
+# We register it in the variable my_vpc.
+
+- name:               Create VPC
+  ec2_vpc_net:
+    name:             "{{ vpc_name }}"
+    cidr_block:       "{{ vpc_cidr_block }}"
+    region:           "{{ aws_region }}"
+    aws_access_key:   "{{ aws_access_key }}"
+    aws_secret_key:   "{{ aws_secret_key }}"
+    security_token:   "{{ aws_token }}"
+    state:            "{{ aws_state }}"
+  register: my_vpc
+
+
+# set fact module
+# so we can save VPC id for usage in ansible
+- name:               Set VPC ID in variable
+  set_fact:
+    vpc_id:           "{{ my_vpc.vpc.id }}"
+
+
+# Create Subnet for VPC
+# This subnet is located in a AZ
+- name:               Create Public Subnet
+  ec2_vpc_subnet:
+    state:            "{{ aws_state }}"
+    vpc_id:           "{{ vpc_id }}"
+    cidr:             "{{ public_subnet_1_cidr }}"
+    az:               "{{ aws_region }}a"
+    region:           "{{ aws_region }}"
+    aws_access_key:   "{{ aws_access_key }}"
+    aws_secret_key:   "{{ aws_secret_key }}"
+    security_token:   "{{ aws_token }}"
+    resource_tags:
+      Name:           "AutoPT-Public-Subnet"
+  register: my_public_subnet
+
+
+# We save the id of the Public Subnet in a new variable.
+- name:               Set Public Subnet ID in variable
+  set_fact:
+    public_subnet_id: "{{ my_public_subnet.subnet.id }}"
+
+# Create a IGW, its required for each VPC.
+# allows traffic from vpc and outside world
+- name:               Create Internet Gateway for VPC
+  ec2_vpc_igw:
+    vpc_id:           "{{ vpc_id }}"
+    region:           "{{ aws_region }}"
+    aws_access_key:   "{{ aws_access_key }}"
+    aws_secret_key:   "{{ aws_secret_key }}"
+    security_token:   "{{ aws_token }}"
+    state:            "{{ aws_state }}"
+    tags:
+      Name:            "IGW-AutoPT"
+  register: my_vpc_igw
+
+# id of IGW in new var
+- name:               Set Internet Gateway ID in variable
+  set_fact:
+    igw_id:           "{{ my_vpc_igw.gateway_id }}"
+
+
+- name:               Set up public subnet route table
+  ec2_vpc_route_table:
+    vpc_id:           "{{ vpc_id }}"
+    region:           "{{ aws_region }}"
+    aws_access_key:   "{{ aws_access_key }}"
+    aws_secret_key:   "{{ aws_secret_key }}"
+    security_token:   "{{ aws_token }}"
+    tags:
+      Name:           "AutoPT-Public-Route"
+    subnets:
+      - "{{ public_subnet_id }}"
+    routes:
+      - dest:         "0.0.0.0/0"
+        gateway_id:   "{{ igw_id }}"
+  
+
+
+# Finally, we create our Main Security Group.
+# Basically the idea here is to allow SSH access
+# from your IP to the EC2 resources you will 
+# start in your VPC.
+
+- name:               Create Main Security Group
+  ec2_group:
+    name:             "Auto-PT-SG"
+    description:      "My Security Group"
+    vpc_id:           "{{ vpc_id }}"
+    region:           "{{ aws_region }}"
+    aws_access_key:   "{{ aws_access_key }}"
+    aws_secret_key:   "{{ aws_secret_key }}"
+    security_token:   "{{ aws_token }}"
+    rules:
+      - proto:        "tcp"
+        from_port:    "22"
+        to_port:      "22"
+        cidr_ip:      "{{ my_ip }}/32"
+      - proto:        "all"
+        # allows internet on private subnet
+        cidr_ip:      "{{ private_subnet_1_cidr }}"
+
+  register:  main_sg
+
+- name:               SG variable
+  set_fact:
+    sg_id:           "{{ main_sg.group_id }}"
+
+
+- name:               Bastion Host Setup
+  ec2:
+    region:           "{{ aws_region }}"
+    aws_access_key:   "{{ aws_access_key }}"
+    aws_secret_key:   "{{ aws_secret_key }}"
+    security_token:   "{{ aws_token }}"
+    instance_type:    t2.micro
+    image:            ami-00a9d4a05375b2763
+    instance_tags:
+      Name:           "NAT/Bastion Host"
+    wait:             yes
+    wait_timeout:     500
+    count:            1
+    key_name:         "{{ key_pair_usage }}"
+    volumes:
+      - device_name:  /dev/xvda
+        delete_on_termination: true
+        volume_type:  gp2
+        volume_size:  20
+    monitoring:       no
+    vpc_subnet_id:    "{{ public_subnet_id }}"
+    assign_public_ip: yes
+    source_dest_check: no
+    group_id:         "{{ sg_id }}"
+  register: nat_instance
+
+
+
+- name:               Get Information about Bastion
+  ec2_instance_info:
+    aws_access_key:   "{{ aws_access_key }}"
+    aws_secret_key:   "{{ aws_secret_key }}"
+    security_token:   "{{ aws_token }}"
+    instance_ids:
+      - "{{ nat_instance.instances[0].id }}"
+  register: bastion
+
+- name:               Set Variable for Bastion interface
+  set_fact:
+    bastion_n_id:     "{{ bastion.instances[0].network_interfaces[0].network_interface_id }}"
+
+- name:               Create Private Subnet
+  ec2_vpc_subnet:
+    state:            "{{ aws_state }}"
+    vpc_id:           "{{ vpc_id }}"
+    cidr:             "{{ private_subnet_1_cidr }}"
+    az:               "{{ aws_region }}a"
+    region:           "{{ aws_region }}"
+    aws_access_key:   "{{ aws_access_key }}"
+    aws_secret_key:   "{{ aws_secret_key }}"
+    security_token:   "{{ aws_token }}"
+    resource_tags:
+      Name:           "AutoPT-Private-Subnet"
+  register: my_private_subnet
+
+- name:               Set Private Subnet ID in variable
+  set_fact:
+    private_subnet_id: "{{ my_private_subnet.subnet.id }}"
+
+
+
+- name:               Set up private subnet route table
+  ec2_vpc_route_table:
+    vpc_id:           "{{ vpc_id }}"
+    region:           "{{ aws_region }}"
+    aws_access_key:   "{{ aws_access_key }}"
+    aws_secret_key:   "{{ aws_secret_key }}"
+    security_token:   "{{ aws_token }}"
+    tags:
+      Name:           "AutoPT-private-Route"
+    subnets:
+      - "{{ private_subnet_id }}"
+    routes:
+      - dest:         "0.0.0.0/0"
+        network_interface_id:   "{{ bastion_n_id }}"
+
+# TODO: create security group that allows inbound ssh with w/ bastion host 
+# also create host in VPC private network to verify it works properly.
+# make sure to allow more into the internal network
+- name:               Create subnet Security Group
+  ec2_group:
+    name:             "Auto-PT-SG-Internal"
+    description:      "training ground security group"
+    vpc_id:           "{{ vpc_id }}"
+    region:           "{{ aws_region }}"
+    aws_access_key:   "{{ aws_access_key }}"
+    aws_secret_key:   "{{ aws_secret_key }}"
+    security_token:   "{{ aws_token }}"
+    rules:
+      - proto:        "tcp"
+        from_port:    "22"
+        to_port:      "22"
+        cidr_ip:      "{{ public_subnet_1_cidr }}"
+
+  register:  internel_sg
+
+- name:               Internal SG ID
+  set_fact:
+    internal_sg_id:           "{{ internel_sg.group_id }}"
+
+
+# TODO: Eventually this will be Kali 
+- name:               Kali Host Setup
+  ec2:
+    region:           "{{ aws_region }}"
+    aws_access_key:   "{{ aws_access_key }}"
+    aws_secret_key:   "{{ aws_secret_key }}"
+    security_token:   "{{ aws_token }}"
+    instance_type:    t2.micro
+    image:            ami-0dba2cb6798deb6d8 # change kali l8r
+    instance_tags:
+      Name:           "Ubuntu-Host-Test"
+    wait:             yes
+    wait_timeout:     500
+    count:            1
+    key_name:         "{{ key_pair_usage }}"
+    # volumes:
+    #   - device_name:  /dev/xvda
+    #     delete_on_termination: true
+    #     volume_type:  gp2
+    #     volume_size:  20
+    monitoring:       no
+    vpc_subnet_id:    "{{ private_subnet_id }}"
+    source_dest_check: no
+    group_id:         "{{ internal_sg_id }}"
+  register: kali_host
