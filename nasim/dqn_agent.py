@@ -1,8 +1,8 @@
-import nasim, keyboard
+import nasim
 from nasim.agents.dqn_agent import DQNAgent
 
 env = nasim.load("tiny.yaml")
-TOTAL_STEPS = 1111
+TOTAL_STEPS = 1000
 dqn_agent = DQNAgent(env, training_steps=TOTAL_STEPS)
 
 # dqn_agent.training_steps = TOTAL_STEPS

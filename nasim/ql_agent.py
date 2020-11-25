@@ -1,50 +1,90 @@
 import numpy as np
-import random
-# or using gym
-import gym
-env = gym.make("nasim:Tiny-PO-v0", flat_obs=True)
+import random, nasim, time
+
+class QFunction:
+    def __init__(self, num_actions):
+        self.q_func = dict()
+        self.num_actions = num_actions
+
+    def __call__(self, x):
+        return self.forward(x)
+
+    def forward(self, x):
+        if isinstance(x, np.ndarray):
+            x = str(x.astype(np.int))
+        if x not in self.q_func:
+            self.q_func[x] = np.zeros(self.num_actions, dtype=np.float32)
+        return self.q_func[x]
+
+    # def forward_batch(self, x_batch):
+    #     return np.asarray([self.forward(x) for x in x_batch])
+
+    # def update_batch(self, s_batch, a_batch, delta_batch):
+    #     for s, a, delta in zip(s_batch, a_batch, delta_batch):
+    #         q_vals = self.forward(s)
+    #         q_vals[a] += delta
+
+    def update(self, s, a, delta):
+        q_vals = self.forward(s)
+        q_vals[a] += delta
+
+    def get_action(self, x):
+        return int(self.forward(x).argmax())
+
+    def display(self):
+        pprint(self.q_func)
+
+env = nasim.load("tiny.yaml", flat_obs=True)
 
 rewards_all_episodes = []
 num_episodes = 10000
 max_steps_per_episode = 100
 
 learning_rate = 0.1
-discount_rate = 0.99
+discount = 0.99
 
 exploration_rate = 1
 max_exploration_rate = 1
 min_exploration_rate = 0.01
 exploration_decay_rate = 0.001
 
-
-
 num_actions = env.action_space.n
 env.generate_initial_state()
-# obs_shape = env.observation_space.shape[0]
-state = env.reset()
-print(state)
-# exit(0)
-# print("Space DIMENSIONS:")
-# print(f"Space DIM: {state.ndim}")
-# print(f"Space Shape: {state.shape}")
-# print(f"Space SIZE: {state.size}")
 
-q_table = np.zeros([1000, num_actions])
-q_table = q_table.astype(int)
-state = state.astype(int)
-q_table[state, 0]
-# print(obs_shape)
+epsilon = 0.05
 
-# print("Q_TABLE DIMENSIONS:")
-# print(f"Q_TABLE DIM: {q_table.ndim}")
-# print(f"Q_TABLE Shape: {q_table.shape}")
-# print(f"Q_TABLE SIZE: {q_table.size}")
-# print(q_table[30, 0])
+qfunc = QFunction(num_actions)
+
+def get_egreedy_action(self, o):
+    if random.random() > epsilon:
+        return qfunc.get_action(o)
+    return random.randint(0, qfunc.num_actions - 1)
+
+def optimize(s, a, next_s, r, done):
+        # get q_val for state and action performed in that state
+        q_vals_raw = qfunc.forward(s)
+        q_val = q_vals_raw[a]
+
+        # get target q val = max val of next state
+        target_q_val = qfunc.forward(next_s).max()
+        target = r + discount * (1-done) * target_q_val
+
+        # calculate error and update
+        td_error = target - q_val
+        td_delta = learning_rate * td_error
+
+        # optimize the model
+        qfunc.update(s, a, td_delta)
+
+        s_value = q_vals_raw.max()
+        return td_error, s_value
 
 # Q-learning algorithm
+state = env.reset()
 for episode in range(num_episodes):
+    print(f"epi: {episode}")
     state = env.reset()
-    state = state.astype(int)
+    state = state
     done = False
 
     rewards_current_episode = 0
@@ -53,24 +93,13 @@ for episode in range(num_episodes):
     for step in range(max_steps_per_episode): 
         # Exploration-exploitation trade-off
         exploration_rate_threshold = random.uniform(0, 1)
-        if exploration_rate_threshold > exploration_rate:
-            action = int(np.argmax(q_table[state,:]))
-            print(f"Explore action: {action}")
-            print(np.argmax(q_table[state,:]))
-        else:
-            action = env.action_space.sample()
-            print(f"Else Action: {action}")
+        action = get_egreedy_action(state, epsilon)
 
-
-        # Take new action
-        # print(action)
-        # print(type(action))
         new_state, reward, done, info = env.step(action)
+
         new_state = new_state.astype(int)
-        print(new_state)
-        # Update Q-table
-        q_table[state, action] = q_table[state, action] * (1 - learning_rate) + \
-            learning_rate * (reward + discount_rate * np.max(q_table[new_state, :]))
+
+        optimize(state, action, new_state, reward, done)
         # Set new state
         state = new_state
         # Add new reward      
@@ -81,9 +110,12 @@ for episode in range(num_episodes):
     # Exploration rate decay
     exploration_rate = min_exploration_rate + \
         (max_exploration_rate - min_exploration_rate) * np.exp(-exploration_decay_rate*episode)
+
     # Add current episode reward to total rewards list
     rewards_all_episodes.append(rewards_current_episode)
 
+
+env.render_network_graph(action=True)
 # Calculate and print the average reward per thousand episodes
 rewards_per_thousand_episodes = np.split(np.array(rewards_all_episodes),num_episodes/1000)
 count = 1000
