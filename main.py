@@ -3,42 +3,69 @@
 import argparse
 import ipaddress
 import socket
+# import requests
 
 def arguments():
     parser = argparse.ArgumentParser(description = 'Phorcys Automated Penetration Testing Tool')
-    parser.add_argument('-i', metavar='I', type=str, help="Target in IPV4 or IPV6 format)")
-    parser.add_argument('-c', type = str, help="Target in CIDR notation")
-    parser.add_argument('-d', type = str, help="Target in Domain Name format")
+    parser.add_argument('-i', type=str, nargs='*', help="Target in IPV4 or IPV6 format)")
+    parser.add_argument('-c', type=str, help="Target in CIDR notation")
+    parser.add_argument('-d', type=str, nargs='*', help="Target in Domain Name format")
     
     args = parser.parse_args()
 
     if args.i:
-        IP = args.i
-        try:
-            ipaddress.ip_address(IP)
-            print(IP)
-        except Exception:
+        ip_list = []
+        
+        try: 
+            for ip in args.i:
+                if "-" in ip:
+                    
+                    ip_maxValue = int(ip.split("-")[1])
+                   
+                    ip_start = ip.split("-")[0]
+
+                    iterative_point = int(ip_start.split(".")[3])
+
+                    for x in range(iterative_point, ip_maxValue+1):
+                        address = ".".join(ip_start.split(".")[:3]) + "." + str(x)
+                        ipaddress.ip_address(address)
+                        ip_list.append(address)
+                    
+                else:
+                    ipaddress.ip_address(ip)
+                    ip_list.append(ip)
+
+            return ip_list
+
+        except ValueError:
             print("Invalid IP Address")
+            return []
+
     if args.c:
-        CIDR = args.c
+        cidr_list = args.c
         try:
-            ipaddress.ip_network(CIDR)
-            print(CIDR)
-        except Exception:
-            print("Invalid CIDR Notation or Address")
+            return [str(ip) for ip in ipaddress.IPv4Network(cidr_list)]
+
+        except ValueError:
+            print("Invalid CIDR Notation")
+            return []
 
     if args.d:
-        DOMAIN = args.d
-        try:
-            DATA = socket.gethostbyname(DOMAIN)
-            IP_ADDRESS = repr(DATA)
-            return IP_ADDRESS
-        except Exception:
-            print("Invalid Domain Name")
-            return False
-        
-        print(IP_ADDRESS)
+        domain_list = args.d
 
+        try:
+            ip_list = []
+            for domain in domain_list:
+                if "https://" in domain or "http://" in domain:
+                    domain = domain.split("//")[1]
+
+                ip_list.append(socket.gethostbyname(domain))
+            return ip_list
+    
+        except socket.gaierror:
+            print("Invalid Domain Name")
+            return []
 
 if __name__ == '__main__':
-    arguments()
+    ip_list = arguments()
+    print(ip_list)
