@@ -14,12 +14,18 @@ def arguments():
 
     if args.i:
         IP = args.i
-        ipaddress.ip_address(IP)
-        print(IP)
+        try:
+            ipaddress.ip_address(IP)
+            print(IP)
+        except Exception:
+            print("Invalid IP Address")
     if args.c:
         CIDR = args.c
-        ipaddress.ip_network(CIDR)
-        print(CIDR)
+        try:
+            ipaddress.ip_network(CIDR)
+            print(CIDR)
+        except Exception:
+            print("Invalid CIDR Notation or Address")
 
     if args.d:
         DOMAIN = args.d
