@@ -23,9 +23,9 @@ class Settings(metaclass=Singleton):
         python doesn't have singletons
         so i had to create a method to have it act as one.
     """
-    def __init__(self, nettacker_ip=None, nettacker_port=None, 
-                 nettacker_key=None, metasploit_ip=None, 
-                 metasploit_port=None, target=None, metasploit_password=None):
+    def __init__(self, nettacker_ip: str, nettacker_port: int, 
+                 nettacker_key: str, metasploit_ip: str, 
+                 metasploit_port: int, target: str, metasploit_password: str):
         
         self.nettacker_ip = nettacker_ip
         self.nettacker_port = nettacker_port
@@ -37,32 +37,31 @@ class Settings(metaclass=Singleton):
 
         self.target = target
 
-
         # make sure all values are unpacked.
         for key in self.__dict__:
             if self.__dict__[key] is None:
                 raise KeyError(f"Missing Parameter: {key}")
 
-    def get_nettacker_port(self):
+    def get_nettacker_port(self) -> int:
         return self.nettacker_port
     
-    def get_nettacker_ip(self):
+    def get_nettacker_ip(self) -> str:
         return self.nettacker_ip
 
-    def get_nettacker_key(self):
+    def get_nettacker_key(self) -> str:
         return self.nettacker_key
 
-    def get_metasploit_ip(self):
+    def get_metasploit_ip(self) -> int:
         return self.metasploit_ip
 
-    def get_metasploit_port(self):
+    def get_metasploit_port(self) -> str:
         return self.metasploit_port
 
-    def get_metasploit_password(self):
+    def get_metasploit_password(self) -> str:
         return self.metasploit_password
 
-    def get_target(self):
+    def get_target(self) -> str:
         return self.target
 
-    def get_dict(self):
+    def get_dict(self) -> dict:
         return self.__dict__

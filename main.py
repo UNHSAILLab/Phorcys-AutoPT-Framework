@@ -68,6 +68,8 @@ def arguments():
             return []
 
 if __name__ == '__main__':
+    """ TODO: andrew make sure to just make it give the string.
+    """
 
     # setup parser 
     config_parser = configparser.ConfigParser()
@@ -78,12 +80,12 @@ if __name__ == '__main__':
     # setup settings
     parameters = {
         'nettacker_ip': config_parser.get('Nettacker', 'ip'), 
-        'nettacker_port': config_parser.get('Nettacker', 'port'),
+        'nettacker_port': int(config_parser.get('Nettacker', 'port')),
         'nettacker_key': config_parser.get('Nettacker', 'key'),
         'metasploit_ip': config_parser.get('Metasploit', 'ip'),
-        'metasploit_port': config_parser.get('Metasploit', 'port'),
+        'metasploit_port': int(config_parser.get('Metasploit', 'port')),
         'metasploit_password': config_parser.get('Metasploit', 'password'),
-        'target': ip # needs to be a string no more list.
+        'target': ip 
     }
     # create config
     config = Settings(**parameters)
