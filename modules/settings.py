@@ -19,11 +19,13 @@ class Config(metaclass=Singleton):
 
         Need to do some validation for __init__ as well.
         probably do some Quality Asssurance later on.
-        uses metaclass to make this object be a singleton python doesn't have singletons
+        uses metaclass to make this object be a singleton 
+        python doesn't have singletons
         so i had to create a method to have it act as one.
     """
-    def __init__(self, nettacker_ip=None, nettacker_port=None, nettacker_key=None, 
-                 metasploit_ip=None, metasploit_port=None, metasploit_password=None):
+    def __init__(self, nettacker_ip=None, nettacker_port=None, 
+                 nettacker_key=None, metasploit_ip=None, 
+                 metasploit_port=None, target=None, metasploit_password=None):
         
         self.nettacker_ip = nettacker_ip
         self.nettacker_port = nettacker_port
@@ -32,6 +34,14 @@ class Config(metaclass=Singleton):
         self.metasploit_ip = metasploit_ip
         self.metasploit_port = metasploit_port
         self.metasploit_password = metasploit_password
+
+        self.target = target
+
+
+        # make sure all values are unpacked.
+        for key in self.__dict__:
+            if self.__dict__[key] is None:
+                raise KeyError(f"Missing Parameter for {key}")
 
     def get_nettacker_port(self):
         return self.nettacker_port
@@ -50,3 +60,9 @@ class Config(metaclass=Singleton):
 
     def get_metasploit_password(self):
         return self.metasploit_password
+
+    def get_target(self):
+        return self.target
+
+    def get_dict(self):
+        return self.__dict__

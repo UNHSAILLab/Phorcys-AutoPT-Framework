@@ -73,6 +73,8 @@ if __name__ == '__main__':
     config_parser = configparser.ConfigParser()
     config_parser.read('config.ini')
 
+    ip = arguments()
+
     # setup settings
     settings = {
         'nettacker_ip': config_parser.get('Nettacker', 'ip'), 
@@ -80,28 +82,11 @@ if __name__ == '__main__':
         'nettacker_key': config_parser.get('Nettacker', 'key'),
         'metasploit_ip': config_parser.get('Metasploit', 'ip'),
         'metasploit_port': config_parser.get('Metasploit', 'port'),
-        'metasploit_password': config_parser.get('Metasploit', 'password')
+        'metasploit_password': config_parser.get('Metasploit', 'password'),
+        'target': ip # needs to be a string no more list.
     }
     # create config
     config = Config(**settings)
 
-
-    # test to ensure singleton
-    settings_test = {
-        'nettacker_ip': '8.8.8.8', 
-        'nettacker_port': '13337',
-        'nettacker_key': 'axsaskdkl2lkel',
-        'metasploit_ip': '5.5.5.5',
-        'metasploit_port': '55555',
-        'metasploit_password': 'password'
-    }
-
-    config_test = Config(**settings_test)
-
-    # singleton test.
-    if config is config_test:
-        print("Singleton Validation")
-
-    ip_list = arguments()
-    print(ip_list)
+    print(config.get_dict())
 
