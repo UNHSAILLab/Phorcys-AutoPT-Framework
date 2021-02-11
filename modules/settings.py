@@ -14,7 +14,7 @@ class Singleton(type):
             cls.instance = super(Singleton, cls).__call__(*args, **kw)
         return cls.instance
 
-class Config(metaclass=Singleton):
+class Settings(metaclass=Singleton):
     """TODO: write comments.
 
         Need to do some validation for __init__ as well.
@@ -41,7 +41,7 @@ class Config(metaclass=Singleton):
         # make sure all values are unpacked.
         for key in self.__dict__:
             if self.__dict__[key] is None:
-                raise KeyError(f"Missing Parameter for {key}")
+                raise KeyError(f"Missing Parameter: {key}")
 
     def get_nettacker_port(self):
         return self.nettacker_port
