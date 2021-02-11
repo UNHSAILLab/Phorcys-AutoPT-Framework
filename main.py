@@ -39,5 +39,5 @@ if __name__ == '__main__':
     }
     # create config
     config = Settings(**parameters)
-    print(ip)
+    # print(ip)
     print(config.get_dict())

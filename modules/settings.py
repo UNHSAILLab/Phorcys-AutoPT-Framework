@@ -1,11 +1,13 @@
-#This file contains the config parsing - objec
+#This file contains the config parsing - object
 # TODO: write header information
 
 
 class Singleton(type):
     """TODO: write comments.
-    How to make a class a singleton
+    The purpose of a Singleton is to provide access to a single object that is needed across an entire software platform. This ensures that if the object is changed,
+    it stays uniform for all areas of a project that need it.
 
+    Below initializes an instance of the object.
     """
     instance = None
     def __call__(cls, *args, **kw):
@@ -16,7 +18,16 @@ class Singleton(type):
 
 class Settings(metaclass=Singleton):
     """TODO: write comments.
+        This class creates a Singleton for all of the necessary settings for the platform. All portions of the system can access this information as needed.
 
+        :param str nettacker_ip: IP address for the nettacker API Server
+        :param int nettacker_port: Port for nettacker API
+        :param str nettacker_ket: API Key needed for nettacker API
+        :param str metasploit_ip: IP address for Metasploit RPC API Server
+        :param int metasploit_port: Port assigned to Metasploit RPC API
+        :param str target: This is the target IP address, Domain, or network
+        :param str metasploit_password: Metasploit RPC API password
+        
         Need to do some validation for __init__ as well.
         probably do some Quality Asssurance later on.
         uses metaclass to make this object be a singleton 
