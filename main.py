@@ -8,68 +8,18 @@ from modules.settings import Settings
 
 def arguments():
     parser = argparse.ArgumentParser(description = 'Phorcys Automated Penetration Testing Tool')
-    parser.add_argument('-i', type=str, nargs='*', help="Target in IPV4 or IPV6 format)")
-    parser.add_argument('-c', type=str, help="Target in CIDR notation")
-    parser.add_argument('-d', type=str, nargs='*', help="Target in Domain Name format")
-    
+    parser.add_argument('T', type=str, help="Target Address (IPV4, IPV6, Domain, CIDR)")
+
     args = parser.parse_args()
-
-    if args.i:
-        ip_list = []
-        
-        try: 
-            for ip in args.i:
-                if "-" in ip:
-                    
-                    ip_maxValue = int(ip.split("-")[1])
-                   
-                    ip_start = ip.split("-")[0]
-
-                    iterative_point = int(ip_start.split(".")[3])
-
-                    for x in range(iterative_point, ip_maxValue+1):
-                        address = ".".join(ip_start.split(".")[:3]) + "." + str(x)
-                        ipaddress.ip_address(address)
-                        ip_list.append(address)
-                    
-                else:
-                    ipaddress.ip_address(ip)
-                    ip_list.append(ip)
-
-            return ip_list
-
-        except ValueError:
-            print("Invalid IP Address")
-            return []
-
-    if args.c:
-        cidr_list = args.c
-        try:
-            return [str(ip) for ip in ipaddress.IPv4Network(cidr_list)]
-
-        except ValueError:
-            print("Invalid CIDR Notation")
-            return []
-
-    if args.d:
-        domain_list = args.d
-
-        try:
-            ip_list = []
-            for domain in domain_list:
-                if "https://" in domain or "http://" in domain:
-                    domain = domain.split("//")[1]
-
-                ip_list.append(socket.gethostbyname(domain))
-            return ip_list
     
-        except socket.gaierror:
-            print("Invalid Domain Name")
-            return []
+    if args.T:
+        target = args.T
+        return target
 
 if __name__ == '__main__':
     """ TODO: andrew make sure to just make it give the string.
-    """
+    """ 
+    """ DONE - Andrew """
 
     # setup parser 
     config_parser = configparser.ConfigParser()
@@ -89,6 +39,5 @@ if __name__ == '__main__':
     }
     # create config
     config = Settings(**parameters)
-
+    print(ip)
     print(config.get_dict())
-
