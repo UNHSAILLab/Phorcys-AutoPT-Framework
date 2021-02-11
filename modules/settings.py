@@ -57,9 +57,9 @@ class Settings(metaclass=Singleton):
                 raise KeyError(f"Missing Parameter: {key}")
 
     def get_nettacker_port(self) -> int:
-        """ This returns the port information for Nettacker
+        """ This returns the port information of the nettacker API
             :param self - This tells the program to access the port that has been initialized in the instance
-            :return self.nettacker_port  - Returns the port
+            :return self.nettacker_port - Returns the port
         """
         return self.nettacker_port
         
@@ -78,37 +78,37 @@ class Settings(metaclass=Singleton):
         return self.nettacker_key
 
     def get_metasploit_ip(self) -> int:
-        """ Returns the Server IP for the Metasploit RPC API
+        """ This returns the Server IP for the Metasploit RPC API
             :param self - This tells the program to access the metasploit_ip initialized in the instance parameters
-            :return metasploit_ip: Returns the IP that is hosting the Metsploit RPC API server
+            :return metasploit_ip - Returns the IP that is hosting the Metsploit RPC API server
         """
         return self.metasploit_ip
 
     def get_metasploit_port(self) -> str:
         """ This returns the port for the Metasploit RPC API
             :param self - This tells the program to access the metasploit_port initialized in the instance parameters
-            :return metasploit_port: Returns the Port to the Metsploit RPC API server
+            :return metasploit_port - Returns the Port to the Metsploit RPC API server
         """
         return self.metasploit_port
 
     def get_metasploit_password(self) -> str:
         """ This returns the Metasploit RPC API Port
             :param self - This tells the program to access the metasploit_password initialized in the instance parameters
-            :return self.metasploit_port: Returns the password to the Metsploit RPC API server
+            :return self.metasploit_port - Returns the password to the Metsploit RPC API server
         """
         return self.metasploit_password
 
     def get_target(self) -> str:
-        """ Returns the Target IP, Domain or Range
+        """ This Returns the Target IP, Domain or Range
             :param self - This tells the program to access the target initialized in the instance parameters
-            :return self.target: Returns the Target IP Address, Domain, or range
+            :return self.target - Returns the Target IP Address, Domain, or range
         """
 
         return self.target
 
     def get_dict(self) -> dict:
         """ This creates a dictionary for all the necessary settings
-        :param self - This tells the program to access and create a dictionary of all initialized settings
-        :return self.__dict__  - Returns the dictionary of all the necessary settings
+            :param self - This tells the program to access and create a dictionary of all initialized settings
+            :return self.__dict__ - Returns the dictionary of all the necessary settings
         """
         return self.__dict__
