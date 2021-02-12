@@ -3,12 +3,7 @@
 
 
 class Singleton(type):
-    """TODO: write comments.
-    The purpose of a Singleton is to provide access to a single object that is needed across an entire software platform
-    This ensures that if the object is changed, it stays uniform for all areas of a project that need it.
-
-    Below initializes an instance of the object.
-    """
+    """Metaclass that can be used to allow a class to be a Singleton."""
     instance = None
     def __call__(cls, *args, **kw):
         # create instance if not there otherwise use same one.
@@ -29,15 +24,9 @@ class Settings(metaclass=Singleton):
         :param int metasploit_port: Port assigned to Metasploit RPC API
         :param str target: This is the target IP address, Domain, or network
         :param str metasploit_password: Metasploit RPC API password
-    
-        Need to do some validation for __init__ as well.
-        probably do some Quality Asssurance later on.
-        uses metaclass to make this object be a singleton 
-        python doesn't have singletons
-        so i had to create a method to have it act as one.
     """
-    def __init__(self, nettacker_ip: str, nettacker_port: int, 
-                 nettacker_key: str, metasploit_ip: str, 
+
+    def __init__(self, nettacker_ip: str, nettacker_port: int, nettacker_key: str, metasploit_ip: str, 
                  metasploit_port: int, target: str, metasploit_password: str):
         
         self.nettacker_ip = nettacker_ip
@@ -51,7 +40,6 @@ class Settings(metaclass=Singleton):
         self.target = target
 
         # make sure all values are unpacked.
-        """ This ensures that all values in the dictionary are initialized"""
         for key in self.__dict__:
             if self.__dict__[key] is None:
                 raise KeyError(f"Missing Parameter: {key}")
@@ -93,7 +81,8 @@ class Settings(metaclass=Singleton):
 
     def get_metasploit_password(self) -> str:
         """ This returns the Metasploit RPC API Port
-            :param self - This tells the program to access the metasploit_password initialized in the instance parameters
+            :param self - This tells the program to access the metasploit_password initialized in the instance 
+                parameters
             :return self.metasploit_port - Returns the password to the Metsploit RPC API server
         """
         return self.metasploit_password

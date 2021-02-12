@@ -8,18 +8,17 @@ from modules.settings import Settings
 
 def arguments():
     parser = argparse.ArgumentParser(description = 'Phorcys Automated Penetration Testing Tool')
-    parser.add_argument('T', type=str, help="Target Address (IPV4, IPV6, Domain, CIDR)")
+    parser.add_argument('target', type=str, help="IP Address (IPv4, IPv6, Domain, CIDR)")
 
     args = parser.parse_args()
     
-    if args.T:
-        target = args.T
+    if args.target:
+        target = args.target
         return target
+    
+    parser.print_help()
 
 if __name__ == '__main__':
-    """ TODO: andrew make sure to just make it give the string.
-    """ 
-    """ DONE - Andrew """
 
     # setup parser 
     config_parser = configparser.ConfigParser()
