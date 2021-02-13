@@ -5,6 +5,7 @@ import ipaddress
 import socket
 import configparser
 from modules.settings import Settings
+from modules.nettacker import NettackerInterface
 
 def arguments():
     parser = argparse.ArgumentParser(description = 'Phorcys Automated Penetration Testing Tool')
@@ -19,6 +20,7 @@ def arguments():
     parser.print_help()
 
 if __name__ == '__main__':
+
 
     # setup parser 
     config_parser = configparser.ConfigParser()
@@ -38,5 +40,15 @@ if __name__ == '__main__':
     }
     # create config
     config = Settings(**parameters)
-    # print(ip)
-    print(config.get_dict())
+
+    data = config.get_dict()
+
+    # example
+    scanner = NettackerInterface(**data)
+    # results = scanner.new_scan()
+
+    # print(results)
+
+    # print(scanner.get_scan_data())
+
+    # print(scanner.get_port_scan_data())
