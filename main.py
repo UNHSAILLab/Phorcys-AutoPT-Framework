@@ -1,12 +1,42 @@
-from Nettacker import *
+#Dealing with arguments
 
-nettacker_ip = "127.0.0.1"
-nettacker_port = "5000"
-apikey = "3f93b882fe3fae98e942ca7fd78744a0"
-target_ip = "127.0.0.1"
-scan_method = "all"
-scan_profile = "all"
+import argparse
+import ipaddress
+import socket
+import configparser
+from modules.settings import Settings
 
-obj = NettackerInterface(nettacker_ip, nettacker_port, apikey, target_ip, scan_method, scan_profile)
-var = obj.new_scan()
-print(var)
+def arguments():
+    parser = argparse.ArgumentParser(description = 'Phorcys Automated Penetration Testing Tool')
+    parser.add_argument('target', type=str, help="IP Address (IPv4, IPv6, Domain, CIDR)")
+
+    args = parser.parse_args()
+    
+    if args.target:
+        target = args.target
+        return target
+    
+    parser.print_help()
+
+if __name__ == '__main__':
+
+    # setup parser 
+    config_parser = configparser.ConfigParser()
+    config_parser.read('config.ini')
+
+    ip = arguments()
+
+    # setup settings
+    parameters = {
+        'nettacker_ip': config_parser.get('Nettacker', 'ip'), 
+        'nettacker_port': int(config_parser.get('Nettacker', 'port')),
+        'nettacker_key': config_parser.get('Nettacker', 'key'),
+        'metasploit_ip': config_parser.get('Metasploit', 'ip'),
+        'metasploit_port': int(config_parser.get('Metasploit', 'port')),
+        'metasploit_password': config_parser.get('Metasploit', 'password'),
+        'target': ip 
+    }
+    # create config
+    config = Settings(**parameters)
+    # print(ip)
+    print(config.get_dict())
