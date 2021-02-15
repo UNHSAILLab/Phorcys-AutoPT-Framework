@@ -1,8 +1,8 @@
 #Dealing with arguments
+# fully reset docker stop $(docker ps -qa) && docker system prune -af --volumes
 
 import argparse
-import ipaddress
-import socket
+import pprint
 import configparser
 from modules.settings import Settings
 from modules.nettacker import NettackerInterface
@@ -43,12 +43,12 @@ if __name__ == '__main__':
 
     data = config.get_dict()
 
+    pp = pprint.PrettyPrinter(indent=4)
     # example
     scanner = NettackerInterface(**data)
-    # results = scanner.new_scan()
+    results = scanner.new_scan()
+    pp.pprint(results)
 
-    # print(results)
 
-    # print(scanner.get_scan_data())
 
-    # print(scanner.get_port_scan_data())
+    pp.pprint(scanner.get_scan_data())

@@ -12,7 +12,7 @@ requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 
 class NettackerInterface:
-    def __init__(self, nettacker_ip, nettacker_port, nettacker_key, target, scan_method='all', scan_profile='all', **kwargs):
+    def __init__(self, nettacker_ip, nettacker_port, nettacker_key, target, scan_method='port_scan', scan_profile='', **kwargs):
         self.nettacker_ip = nettacker_ip
         self.nettacker_port = nettacker_port
         self.apikey = nettacker_key
@@ -24,7 +24,16 @@ class NettackerInterface:
 
     def new_scan(self):
         """Posts a new Scan to the Nettacker API"""
-        data = {'key': self.apikey, 'targets': self.target_ip, 'scan_method': self.scan_method, 'profile': self.scan_profile}
+
+        data = {
+            'key': self.apikey, 
+            'targets': self.target_ip, 
+            'scan_method': self.scan_method, 
+            'profile': self.scan_profile
+        }
+
+        # remove keys not used.
+        data = {key: value for key, value in data.items() if value}
 
         r = requests.post(f"{self.base_url}/new/scan", data=data, verify=False)
 
@@ -37,9 +46,17 @@ class NettackerInterface:
 
         url = f"{self.base_url}/logs/get_json?host={self.target_ip}"
 
-        r = requests.get(url, data=data, verify=False)
 
-        return json.loads(r.content)
+
+        # r = requests.get(url, data=data, verify=False)
+
+        content = None
+        while not content:
+            print("Waiting for output.")
+            r = requests.get(url, data=data, verify=False)
+            content = json.loads(r.content)
+
+        return content
 
 
 # descriptive One scan Port Scan, If scan_method is being set, this may be obselete
