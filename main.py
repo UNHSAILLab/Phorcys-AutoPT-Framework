@@ -1,3 +1,4 @@
+
 #Dealing with arguments
 # fully reset docker stop $(docker ps -qa) && docker system prune -af --volumes
 
@@ -14,8 +15,13 @@ def arguments():
     args = parser.parse_args()
     
     if args.target:
-        target = args.target
-        return target
+        """ This deals with CIDR Notation input. Domain input not supported at this time."""
+        if '/24' or '/16' in args.target:
+            cidr_list = args.target
+            return ','.join([str(ip) for ip in ipaddress.IPv4Network(cidr_list)])
+        else:
+            target = args.target
+            return target
     
     parser.print_help()
 
@@ -40,7 +46,7 @@ if __name__ == '__main__':
     }
     # create config
     config = Settings(**parameters)
-
+    # print(ip)
     data = config.get_dict()
 
     pp = pprint.PrettyPrinter(indent=4)
