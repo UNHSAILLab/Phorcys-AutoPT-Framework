@@ -1,4 +1,4 @@
-# Capstone-Penetration-Testing
+# Phorcys
 Capstone project for using Reinforcement Learning to conduct intelligent penetration tests.
 
 ## Abstract (draft)
