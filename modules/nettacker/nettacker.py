@@ -46,17 +46,9 @@ class NettackerInterface:
 
         url = f"{self.base_url}/logs/get_json?host={self.target_ip}"
 
+        r = requests.get(url, data=data, verify=False)
 
-
-        # r = requests.get(url, data=data, verify=False)
-
-        content = None
-        while not content:
-            print("Waiting for output.")
-            r = requests.get(url, data=data, verify=False)
-            content = json.loads(r.content)
-
-        return content
+        return json.loads(r.content)
 
 
 # descriptive One scan Port Scan, If scan_method is being set, this may be obselete
@@ -68,7 +60,6 @@ class NettackerInterface:
 
         r = requests.get(f"{self.base_url}/logs/search?q=port_scan", data=data, verify=False)
 
-        # n = NettackerInterface(r.content)
         return json.loads(r.content)
 
 
