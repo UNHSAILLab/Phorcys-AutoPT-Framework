@@ -12,12 +12,13 @@ requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 
 class NettackerInterface:
-    def __init__(self, nettacker_ip, nettacker_port, nettacker_key, target, scan_method='port_scan', scan_profile='', **kwargs):
+    def __init__(self, nettacker_ip, nettacker_port, nettacker_key, target, scan_method='port_scan', ping_flag=True, scan_profile='', **kwargs):
         self.nettacker_ip = nettacker_ip
         self.nettacker_port = nettacker_port
         self.apikey = nettacker_key
         self.target_ip = target
         self.scan_method = scan_method
+        self.ping_flag = ping_flag
         self.scan_profile = scan_profile
 
         self.base_url = f"https://{nettacker_ip}:{nettacker_port}"
@@ -29,7 +30,8 @@ class NettackerInterface:
             'key': self.apikey, 
             'targets': self.target_ip, 
             'scan_method': self.scan_method, 
-            'profile': self.scan_profile
+            'profile': self.scan_profile,
+            'ping_flag': self.ping_flag
         }
 
         # remove keys not used.
@@ -48,8 +50,8 @@ class NettackerInterface:
 
         r = requests.get(url, data=data, verify=False)
 
-        return json.loads(r.content)
-
+        content = json.loads(r.content)
+        return content
 
 # descriptive One scan Port Scan, If scan_method is being set, this may be obselete
 
@@ -61,5 +63,3 @@ class NettackerInterface:
         r = requests.get(f"{self.base_url}/logs/search?q=port_scan", data=data, verify=False)
 
         return json.loads(r.content)
-
-
