@@ -51,7 +51,9 @@ class NettackerInterface:
         r = requests.get(url, data=data, verify=False)
 
         content = json.loads(r.content)
+
         return content
+
 
 # descriptive One scan Port Scan, If scan_method is being set, this may be obselete
 

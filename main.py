@@ -1,4 +1,3 @@
-
 #Dealing with arguments
 # fully reset docker stop $(docker ps -qa) && docker system prune -af --volumes
 
@@ -6,7 +5,17 @@ import argparse
 import pprint
 import configparser
 from modules.settings import Settings
+import time
 from modules.nettacker import NettackerInterface
+
+# from pymetasploit3.msfrpc import MsfRpcClient
+# from pymetasploit3.msfconsole import MsfRpcConsole
+
+#['auxiliary', 'encodeformats', 'encoders', 
+# 'evasion', 'execute', 'exploits', 'nops', 'payloads', 'platforms', 'post', 'rpc', 'use']    
+def dirty_search(client, keyword):
+    return [m for m in client.modules.exploits if keyword in m]
+
 
 def arguments():
     parser = argparse.ArgumentParser(description = 'Phorcys Automated Penetration Testing Tool')
@@ -15,18 +24,12 @@ def arguments():
     args = parser.parse_args()
     
     if args.target:
-        """ This deals with CIDR Notation input. Domain input not supported at this time."""
-        if '/24' or '/16' in args.target:
-            cidr_list = args.target
-            return ','.join([str(ip) for ip in ipaddress.IPv4Network(cidr_list)])
-        else:
-            target = args.target
-            return target
+        target = args.target
+        return target
     
     parser.print_help()
 
 if __name__ == '__main__':
-
 
     # setup parser 
     config_parser = configparser.ConfigParser()
@@ -46,15 +49,29 @@ if __name__ == '__main__':
     }
     # create config
     config = Settings(**parameters)
-    # print(ip)
+
     data = config.get_dict()
 
     pp = pprint.PrettyPrinter(indent=4)
     # example
-    scanner = NettackerInterface(**data)
-    results = scanner.new_scan()
-    pp.pprint(results)
+    scanner = NettackerInterface(**data, ping_flag=True)
+    # results = scanner.new_scan()
+    pp.pprint(scanner.get_port_scan_data())
 
 
+    #sleep(10)
 
-    pp.pprint(scanner.get_scan_data())
+    # pp.pprint(scanner.get_scan_data())
+
+    # client = MsfRpcClient(data.get('metasploit_password'), port=55552, server=data.get('metasploit_ip'))
+
+    # console_id = client.consoles.console().cid
+    # console = client.consoles.console(console_id)
+    # console.write("nmap 127.0.0.1")
+
+    # while console.is_busy():
+    #     time.sleep(5)
+    # print(console.read())
+
+    # method_list = [func for func in dir(console) if callable(getattr(console, func))]
+    # print(method_list)
