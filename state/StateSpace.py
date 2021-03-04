@@ -213,7 +213,7 @@ class StateSpace:
             decodedVulnerabilities = {self.decodeVulnerabilities()}
         )
         """
-        print(textwrap.dedent(printString))
+        print(textwrap.dedent(printString), end='')
 
     # Function that encodes the access level for the state using one-hot encoding
     # @param {AccessLevel} accessLevel - The level of access granted for the host machine
