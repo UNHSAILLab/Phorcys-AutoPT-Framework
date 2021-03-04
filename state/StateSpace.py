@@ -367,13 +367,13 @@ class StateParser:
     # Function That Parses The Host Address From The Host
     # @return {str} The host address
     @staticmethod
-    def _getHostAddress(host: dict):
+    def _getHostAddress(host: dict) -> str:
         return host.get('host')
 
     # Function That Parses The Open Ports From The Host
     # @return {List[int]} The list of open ports
     @staticmethod
-    def _getOpenPorts(host: dict):
+    def _getOpenPorts(host: dict) -> List[int]:
 
         # Creates The Opened Port List And Gets The Unparsed Open Port List
         openPortList: List[int] = []
