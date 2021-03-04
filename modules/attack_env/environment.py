@@ -3,13 +3,11 @@ import gym, logging
 import numpy as np
 from gym import spaces
 
-
-
 class Environment(gym.Env):
     """ Custom Environment for Gym Interface """
 
     def __init__(self, nettacker_json):
-        super(Environment, self).__init__()    
+        super(Environment, self).__init__()   
 
         log_fmt = "[%(levelname)s] [%(asctime)-15s] %(message)s"
         logging.basicConfig(filename='phorcys.log', format=log_fmt, level=logging.DEBUG)
