@@ -1,6 +1,7 @@
 import json
 import math
 import numpy
+import textwrap
 import torch
 import torch.nn.functional as F
 from enum import Enum
@@ -39,10 +40,10 @@ class StateSpace:
 
     # The Host Address Options Available
     hostAddressOptions: List[List[str]] = [
+        ['192.168.1.100'],
         ['192.168.1.183'],
-        ['192.168.1.201'],
         ['192.168.1.200'],
-        ['192.168.1.100']
+        ['192.168.1.201']
     ]
 
     # </editor-fold>
@@ -69,7 +70,7 @@ class StateSpace:
 
     # Function that decodes the access level from its state representation
     # @return {AccessLevel} The decoded access level
-    def decodeAccessLevel(self):
+    def decodeAccessLevel(self) -> AccessLevel:
 
         # The Access Level Options Available
         accessOptions: List[List[int]] = [
@@ -89,7 +90,7 @@ class StateSpace:
 
     # Function that decodes the Host Address from its state representation
     # @return {str} The host machines public ipv4 address
-    def decodeHostAddress(self):
+    def decodeHostAddress(self) -> str:
 
         # Creates The Decoder To Be Fitted With The Space Of The Host Address Options
         decoder: OneHotEncoder = OneHotEncoder().fit(self.hostAddressOptions)
@@ -99,7 +100,7 @@ class StateSpace:
 
     # Function that decodes the open ports from its state representation
     # @return {List[int]} The decoded list of open ports
-    def decodeOpenPorts(self):
+    def decodeOpenPorts(self) -> List[int]:
 
         # The Open Port Options Available
         openPortOptions: List[List[int]] = [[port] for port in range(1, pow(2, 16))]
@@ -122,7 +123,7 @@ class StateSpace:
 
     # Function that decodes the services from its state representation
     # @return {List[str]} The decoded list of services
-    def decodeServices(self):
+    def decodeServices(self) -> List[str]:
 
         # The Service Options Available
         serviceOptions: List[List[str]] = [
@@ -149,7 +150,7 @@ class StateSpace:
 
     # Function that decodes the vulnerabilities from its state representation
     # @return {List[str]} The decoded list of vulnerabilities
-    def decodeVulnerabilities(self):
+    def decodeVulnerabilities(self) -> List[str]:
 
         # The Vulnerability Options Available
         vulnerabilityOptions: List[List[str]] = [
@@ -179,6 +180,40 @@ class StateSpace:
 
         # Returns The Decoded List Of Vulnerabilities
         return vulnerabilities
+
+    # Function That Prints The State Space Object In A Nicely Formatted Way
+    #
+    def print(self):
+
+        # Function That Formats A List To Be Printed Horizontally
+        # @param {List} values - The list to format
+        # @return {str} The formatted list as a string
+        def formatList(values: List) -> str:
+            formattedList: str = ''
+            for value in values:
+                if formattedList == '':
+                    formattedList = '[' + '[' + str(value) + ']'
+                else:
+                    formattedList = formattedList + ' ' + '[' + str(value) + ']'
+            return formattedList + ']'
+
+        # Creates The Formatted String For Printing The State Space
+        printString = f"""
+        StateSpace = (
+            encodedAccessLevel     = {self.accessLevel}
+            encodedHostAddress     = {self.hostAddress}
+            encodedOpenPorts       = {formatList(self.openPorts)}
+            encodedServices        = {formatList(self.services)}
+            encodedVulnerabilities = {formatList(self.vulnerabilities)}
+            
+            decodedAccessLevel     = {self.decodeAccessLevel()}
+            decodedHostAddress     = {self.decodeHostAddress()}
+            decodedOpenPorts       = {formatList(self.decodeOpenPorts())}
+            decodedServices        = {formatList(self.decodeServices())}
+            decodedVulnerabilities = {formatList(self.decodeVulnerabilities())}
+        )
+        """
+        print(textwrap.dedent(printString))
 
     # Function that encodes the access level for the state using one-hot encoding
     # @param {AccessLevel} accessLevel - The level of access granted for the host machine
@@ -319,9 +354,11 @@ class StateParser:
 
             # Creates A State Space From The Host Data
             newStateSpace = StateSpace(
-                accessLevel = AccessLevel.NO_ACCESS,
-                openPorts   = openPorts,
-                hostAddress = hostAddress,
+                accessLevel     = AccessLevel.NO_ACCESS,
+                openPorts       = openPorts,
+                hostAddress     = hostAddress,
+                services        = ['auxiliary/scanner/ftp/ftp_version', 'auxiliary/scanner/ssh/ssh_version'],
+                vulnerabilities = ['auxiliary/scanner/ftp/anonymous', 'exploit/windows/smb/ms17_010_eternalblue']
             )
 
             # Adds The State Space To The State Spaces List
@@ -351,13 +388,5 @@ class StateParser:
         return openPortList
 
 stateParser = StateParser('input.json')
-
-stateSpace = stateParser.stateSpaces[0]
-print(stateSpace.accessLevel)
-print(stateSpace.hostAddress)
-print(stateSpace.openPorts)
-print(stateSpace.services)
-print(stateSpace.vulnerabilities)
-
-print(stateSpace.decodeAccessLevel())
-print(stateSpace.decodeHostAddress())
+for stateSpace in stateParser.stateSpaces:
+    stateSpace.print()
