@@ -1,7 +1,7 @@
 # https://towardsdatascience.com/creating-a-custom-openai-gym-environment-for-stock-trading-be532be3910e
-import gym
-from gym import spaces
+import gym, logging
 import numpy as np
+from gym import spaces
 
 
 
@@ -11,7 +11,12 @@ class Environment(gym.Env):
     def __init__(self, nettacker_json):
         super(Environment, self).__init__()    
 
-        print(nettacker_json)
+        log_fmt = "[%(levelname)s] [%(asctime)-15s] %(message)s"
+        logging.basicConfig(filename='phorcys.log', format=log_fmt, level=logging.DEBUG)
+
+        self.logger = logging.getLogger('Phorcys')
+
+        self.logger.debug(f"JSON FROM Nettacker: {nettacker_json}")
 
         # create all actions
 
@@ -25,7 +30,7 @@ class Environment(gym.Env):
         # Example when using discrete actions:
         self.action_space = spaces.Discrete(10)    
         
-        # Example for using image as input:
+        # Full state space for observation.
         self.observation_space = spaces.Box(low=0, high=255, shape=
                     (10, 20, 2), dtype=np.uint8)
     
