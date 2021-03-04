@@ -33,11 +33,14 @@ class Environment(gym.Env):
                     (10, 20, 2), dtype=np.uint8)
     
     def step(self, action):
-        return None
+        """ TODO: add step of action"""
+        raise NotImplementedError
     
     def reset(self):
-        return None
+        """ TODO: add a reset function """
+        raise NotImplementedError
 
 
     def render(self):
-        return None
+        """ TODO: add a render function """
+        raise NotImplementedError
