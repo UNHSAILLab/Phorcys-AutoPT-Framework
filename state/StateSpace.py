@@ -208,9 +208,9 @@ class StateSpace:
             
             decodedAccessLevel     = {self.decodeAccessLevel()}
             decodedHostAddress     = {self.decodeHostAddress()}
-            decodedOpenPorts       = {formatList(self.decodeOpenPorts())}
-            decodedServices        = {formatList(self.decodeServices())}
-            decodedVulnerabilities = {formatList(self.decodeVulnerabilities())}
+            decodedOpenPorts       = {self.decodeOpenPorts()}
+            decodedServices        = {self.decodeServices()}
+            decodedVulnerabilities = {self.decodeVulnerabilities()}
         )
         """
         print(textwrap.dedent(printString))
