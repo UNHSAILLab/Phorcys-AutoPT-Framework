@@ -66,6 +66,7 @@ class MetasploitInterface:
         print(f"User Level: {shell.read()}")
         shell.write('ifconfig')
         print(f"Address Properties:\n {shell.read()}")
+        client.console.console(cid).destroy
         
         ##print(exploit.targetpayloads())
         
