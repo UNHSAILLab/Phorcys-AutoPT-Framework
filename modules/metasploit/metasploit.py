@@ -77,7 +77,6 @@ class MetasploitInterface:
         split_string = self.exploit.split('/') ## SPLIT ON / and rejoin accordingly
 
         """ SETS UP EXPLOIT and TARGET"""
-        exploit = client.modules.use(module, specific_module)
         module = split_string[0]
         specific_module = "/".join(split_string[1:])
 
