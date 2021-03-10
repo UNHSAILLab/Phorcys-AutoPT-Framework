@@ -3,6 +3,8 @@ import gym, logging
 import numpy as np
 from gym import spaces
 from collections import OrderedDict
+import pprint 
+from .StateSpace import ObservationSpace
 
 
 COST_EXPLOIT = 20.0
@@ -13,9 +15,7 @@ REWARD_EXPLOIT = 1000.0
 
 class Environment(gym.Env):
     """ Custom Environment for Gym Interface """
-    # TODO: Convert 2d actions spaces into 1d actions spaces.
-
-    def __init__(self, nettacker_json):
+    def __init__(self, nettacker_json, verbose=1):
         super(Environment, self).__init__()   
 
         log_fmt = "[%(levelname)s] [%(asctime)-15s] %(message)s"
@@ -24,47 +24,34 @@ class Environment(gym.Env):
         self.logger = logging.getLogger('Phorcys')
 
         self.logger.debug(f"JSON FROM Nettacker: {nettacker_json}")
+        self.verbose = verbose
 
         # create all actions
 
         # now that we have nettacker_json 
         # create the state space as the observation
 
-        # essentially for each space create a dict.
+        # TODO: Fix action space.
         self.action_space = spaces.Dict({
             "target": spaces.MultiBinary(5), # change whenever decided will make a class to handle this.
             "port": spaces.Box(low=-1.444, high=1.444, shape=(2,), dtype=np.float32),
             "action": spaces.MultiBinary(5) # will need to change.
         })
-    
+
         # Full state space for observation.
-        self.observation_space = spaces.MultiBinary([5,5,5])
+        # TODO ingest nettacker json
+        self.observation_space = ObservationSpace()
 
-        self._construct_network(nettacker_json)
+        self.network = self._construct_network(self.verbose)
 
 
-    def _construct_network(self, nettacker_json):
+    def _construct_network(self, verbose):
+        """ Construct the network based on scan results"""
+        inital_state = self.reset()
 
-        self.network = OrderedDict()
-        # create stateparser
+        if verbose: pprint.pprint(list(inital_state.items()))
 
-        # get nettacker json and add to stateparser
-
-        address_space = None # need to add refactor
-
-        # once state space code is done can add each host.
-        for host in address_space:
-            _ports = address_space.get("ports")
-            _access_level = address_space.get("access")
-            _services = address_space.get("services")
-
-            self.network[host] = {
-                "serivces": _services, 
-                "ports": _ports, 
-                "access_level": _access_level
-                # ... more just for now until i get more
-            }
-
+        return inital_state
 
 
     def _check_action_type_cost(self, action):
@@ -93,7 +80,8 @@ class Environment(gym.Env):
             raise "Wait for Metasploit integration"
         elif action['action'] == 'exploit':
             raise "Wait for Metasploit integration"
-        else: 
+        else:
+            pass 
 
         return True, 10, 0.0 # return will be changed once ready
 
@@ -107,24 +95,13 @@ class Environment(gym.Env):
         if self.current_state[target]['access_level'] == [0, 0]:
             return self.current_state, 0 - action_cost, False, {}
 
-
-
-
-
-
-
-
-
-    
-
     def reset(self):
         """
         Reset the state of the environment and returns the initial observation.
         Returns:
             dict obs : the intial observation of the network environment
         """
-        self.current_state = self.observation_space.get_initial_state()
-        return self.current_state
+        return self.observation_space.getInitialObvState()
 
 
     def render(self):

@@ -576,12 +576,12 @@ class ObservationSpace(gym.Space, ABC):
         return copy.deepcopy(self._initialObvState)
 
 
-stateParser = StateParser('input.json')
-states = stateParser.stateSpaces
-for state in states:
-    state.print()
+# stateParser = StateParser('input.json')
+# states = stateParser.stateSpaces
+# for state in states:
+#     state.print()
 
-obvSpace = ObservationSpace()
-obvState = obvSpace.getInitialObvState()
-print()
-print(obvState)
+# obvSpace = ObservationSpace()
+# obvState = obvSpace.getInitialObvState()
+# print()
+# print(obvState)
