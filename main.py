@@ -101,18 +101,21 @@ from pymetasploit3.msfconsole import MsfRpcConsole
 
 def arguments():
     banner = """
-   ___  __  \n                     
-  / _ \/ /  ___  __________ _____\n
- / ___/ _ \/ _ \/ __/ __/ // (_-<\n
-/_/  /_//_/\___/_/  \__/\_, /___/\n
-                       /___/\n
+   ___  __                   
+  / _ \/ /  ___  __________ _____
+ / ___/ _ \/ _ \/ __/ __/ // (_-<
+/_/  /_//_/\___/_/  \__/\_, /___/
+                       /___/
     """
-    parser = argparse.ArgumentParser(description = banner + '\n\nPhorcys Automated Penetration Testing Tool')
+    
+    parser = argparse.ArgumentParser(description = 'Phorcys Automated Penetration Testing Tool')
     parser.add_argument('target', type=str, help="IP Address (IPv4, IPv6, Domain, CIDR)")
+    print(banner)
     args = parser.parse_args()
     if args.target:
         target = args.target
         return target
+
     parser.print_help()
 if __name__ == '__main__':
     # setup parser 
@@ -144,18 +147,21 @@ if __name__ == '__main__':
     # client = MsfRpcClient(data.get('metasploit_password'), port=data.get('metasploit_port'), server=data.get('metasploit_ip'))
     # print([m for m in dir(client) if not m.startswith('_')])
 
-    metasploit = MetasploitInterface(data.get('metasploit_ip'), data.get('metasploit_port'), data.get('metasploit_password'), data.get('target'), 'exploit/unix/ftp/proftpd_133c_backdoor')
-    metasploit.exploitFTP()
+    # metasploit = MetasploitInterface(data.get('metasploit_ip'), data.get('metasploit_port'), data.get('metasploit_password'), data.get('target'), 'exploit/unix/ftp/proftpd_133c_backdoor')
+    # success, user_level, exploit = metasploit.exploitFTP()
+    
     # metasploit = MetasploitInterface(data.get('metasploit_ip'), data.get('metasploit_port'), data.get('metasploit_password'), data.get('target'), 'auxiliary/scanner/ftp/anonymous')
-    # metasploit.scanFTP()
+    # success, user_level, exploit = metasploit.scanFTP()
     # metasploit = MetasploitInterface(data.get('metasploit_ip'), data.get('metasploit_port'), data.get('metasploit_password'), data.get('target'), 'exploit/windows/smb/ms17_010_eternalblue')
-    # metasploit.eternalBlue()
-
+    # success, user_level, exploit = metasploit.eternalBlue()
     # metasploit = MetasploitInterface(data.get('metasploit_ip'), data.get('metasploit_port'), data.get('metasploit_password'), data.get('target'), 'auxiliary/scanner/rdp/rdp_scanner')
-    # metasploit.rdpScanner()
+    # success, user_level, exploit = metasploit.rdpScanner()
 
     # metasploit = MetasploitInterface(data.get('metasploit_ip'), data.get('metasploit_port'), data.get('metasploit_password'), data.get('target'), 'exploit/windows/rdp/cve_2019_0708_bluekeep_rce')
-    # metasploit.blueKeep()
+    # success, user_level, exploit = metasploit.blueKeep()
 
+    print("Success: ", success)
+    print("User level: " + user_level)
+    print("Exploit: " + exploit)
 
 
