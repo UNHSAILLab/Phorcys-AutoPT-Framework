@@ -1,9 +1,16 @@
 # https://towardsdatascience.com/creating-a-custom-openai-gym-environment-for-stock-trading-be532be3910e
-import gym, logging
+# R (s', a, s) = value(s', s) - cost(a)
+
+import gym, logging, pprint
 import numpy as np
 from gym import spaces
+ 
+from gym.spaces.utils import flatdim
+from gym.spaces.utils import flatten_space
+from gym.spaces.utils import flatten
+from gym.spaces.utils import unflatten
+
 from collections import OrderedDict
-import pprint 
 from .StateSpace import ObservationSpace
 
 
@@ -13,7 +20,11 @@ COST_SCAN = 10.0
 REWARD_SCAN = 50.0
 REWARD_EXPLOIT = 1000.0
 
+# IMPLEMENT REWARD
+
 class Environment(gym.Env):
+
+    metadata = {'render.modes': ['console']}
     """ Custom Environment for Gym Interface """
     def __init__(self, nettacker_json, verbose=1):
         super(Environment, self).__init__()   
@@ -33,15 +44,26 @@ class Environment(gym.Env):
 
         # TODO: Fix action space.
         self.action_space = spaces.Dict({
-            "target": spaces.MultiBinary(5), # change whenever decided will make a class to handle this.
-            "port": spaces.Box(low=-1.444, high=1.444, shape=(2,), dtype=np.float32),
-            "action": spaces.MultiBinary(5) # will need to change.
+            "target": spaces.Discrete(4), # change whenever decided will make a class to handle this.
+            "port": spaces.Discrete(16),
+            "action": spaces.Discrete(5) # metasploit module
         })
+
+        # self.action_space = flatten_space(self.action_space)
 
         # Full state space for observation.
         # TODO ingest nettacker json
-        self.observation_space = ObservationSpace()
+        self._observation_space = ObservationSpace()
 
+        self.observation_space = spaces.Dict({
+            'accessLevel'     : spaces.MultiBinary([1,3]),
+            'hostAddress'     : spaces.MultiBinary([1,4]),
+            'openPorts'       : spaces.MultiBinary([1, 16]),
+            'services'        : spaces.MultiBinary([1, 4]),
+            'vulnerabilities' : spaces.MultiBinary([1, 10])
+        })
+        
+        
         self.network = self._construct_network(self.verbose)
 
 
@@ -101,7 +123,7 @@ class Environment(gym.Env):
         Returns:
             dict obs : the intial observation of the network environment
         """
-        return self.observation_space.getInitialObvState()
+        return self._observation_space.getInitialObvState()
 
 
     def render(self):

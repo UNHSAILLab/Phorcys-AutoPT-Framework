@@ -14,6 +14,8 @@ from enum import Enum
 from typing import List
 from sklearn.preprocessing import MinMaxScaler, StandardScaler, Normalizer, OneHotEncoder
 
+import numpy as np
+
 # Enum Class AccessLevel
 # Class For Describing Access Levels
 # @author Jordan Zimmitti
@@ -529,19 +531,19 @@ class ObservationSpace(gym.Space, ABC):
     def __init__(self):
 
         # Defines The Observation Space As A Ordered Dict
-        obvSpace: OrderedDict = OrderedDict()
+        self.obvSpace: OrderedDict = OrderedDict()
 
         # Iterate Through Each State In The State Space
         for stateSpace in self.stateSpaces:
 
             # Describe The Observation State For Each Host
             hostAddress = stateSpace.decodeHostAddress()
-            obvSpace[hostAddress] = spaces.Dict({
-                'accessLevel'     : spaces.MultiBinary(3),
-                'hostAddress'     : spaces.MultiBinary(4),
-                'openPorts'       : spaces.MultiBinary(16),
-                'services'        : spaces.MultiBinary(4),
-                'vulnerabilities' : spaces.MultiBinary(10)
+            self.obvSpace[hostAddress] = spaces.Dict({
+                'accessLevel'     : spaces.MultiBinary([1,3]),
+                'hostAddress'     : spaces.MultiBinary([1,4]),
+                'openPorts'       : spaces.MultiBinary([1, 16]),
+                'services'        : spaces.MultiBinary([1, 4]),
+                'vulnerabilities' : spaces.MultiBinary([1, 10])
             })
 
         # Initialize The Gym Space
@@ -560,13 +562,14 @@ class ObservationSpace(gym.Space, ABC):
         # Adds The Parsed State
         for stateSpace in self.stateSpaces:
             hostAddress = stateSpace.decodeHostAddress()
-            _initialObvState[hostAddress] = OrderedDict({
+            _initialObvState = OrderedDict({
                 'accessLevel'     : stateSpace.accessLevel,
                 'hostAddress'     : stateSpace.hostAddress,
                 'openPorts'       : stateSpace.openPorts,
                 'services'        : stateSpace.services,
                 'vulnerabilities' : stateSpace.vulnerabilities
             })
+            break
 
         return _initialObvState
 
