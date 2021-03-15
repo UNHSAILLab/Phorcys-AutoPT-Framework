@@ -581,7 +581,6 @@ class ObservationSpace(gym.Space, ABC):
     def getInitialObvState(self) -> OrderedDict:
         return copy.deepcopy(self._initialObvState)
 
-<<<<<<< HEAD:modules/attack_env/StateSpace.py
 
 # stateParser = StateParser('input.json')
 # states = stateParser.stateSpaces
@@ -592,14 +591,3 @@ class ObservationSpace(gym.Space, ABC):
 # obvState = obvSpace.getInitialObvState()
 # print()
 # print(obvState)
-=======
-stateParser = StateParser('input.json')
-states = stateParser.stateSpaces
-for state in states:
-    state.print()
-
-obvSpace = ObservationSpace()
-obvState = obvSpace.getInitialObvState()
-print(obvSpace.obvState)
-print(obvState)
->>>>>>> c8d7f5e30257fae18a817b7fc86a60bc0cae1e62:state/StateSpace.py

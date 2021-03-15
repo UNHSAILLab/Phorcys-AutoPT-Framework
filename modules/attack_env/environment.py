@@ -43,11 +43,11 @@ class Environment(gym.Env):
         # create the state space as the observation
 
         # TODO: Fix action space.
-        self.action_space = spaces.Dict({
-            "target": spaces.Discrete(4), # change whenever decided will make a class to handle this.
-            "port": spaces.Discrete(16),
-            "action": spaces.Discrete(5) # metasploit module
-        })
+        self.action_space = spaces.Tuple((
+            spaces.Discrete(4), #target
+            spaces.Discrete(16), # port
+            spaces.Discrete(10) # metasploit module
+        ))
 
         # self.action_space = flatten_space(self.action_space)
 
@@ -56,11 +56,11 @@ class Environment(gym.Env):
         self._observation_space = ObservationSpace()
 
         self.observation_space = spaces.Dict({
-            'accessLevel'     : spaces.MultiBinary([1,3]),
-            'hostAddress'     : spaces.MultiBinary([1,4]),
-            'openPorts'       : spaces.MultiBinary([1, 16]),
-            'services'        : spaces.MultiBinary([1, 4]),
-            'vulnerabilities' : spaces.MultiBinary([1, 10])
+            'accessLevel'     : spaces.MultiBinary(3),
+            'hostAddress'     : spaces.MultiBinary(4),
+            'openPorts'       : spaces.MultiBinary(16),
+            'services'        : spaces.MultiBinary(4),
+            'vulnerabilities' : spaces.MultiBinary(10)
         })
         
         
@@ -109,6 +109,8 @@ class Environment(gym.Env):
 
     def step(self, action):
         """ TODO: add step of action"""
+
+        print(action)
         target, action_type = action['target'], action['action']
 
         action_cost = self._check_action_type_cost(action_type)
