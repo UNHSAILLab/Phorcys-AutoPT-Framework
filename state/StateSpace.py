@@ -517,7 +517,7 @@ class StateParser:
 # Python Class ObservationSpace
 # Class That Creates And Handles The Observation Space
 # @author Jordan Zimmitti
-class ObservationSpace(gym.Space, ABC):
+class ObservationSpace(spaces.Dict, ABC):
 
     # Parses The JSON Data To Create The State Space
     stateSpaces: List[StateSpace] = StateParser('input.json').stateSpaces
@@ -532,23 +532,16 @@ class ObservationSpace(gym.Space, ABC):
     def __init__(self):
 
         # Defines The Observation Space As A Ordered Dict
-        self.obvState: OrderedDict = OrderedDict()
-
-        # Iterate Through Each State In The State Space
-        for stateSpace in self.stateSpaces:
-
-            # Describe The Observation State For Each Host
-            hostAddress = stateSpace.decodeHostAddress()
-            self.obvState[hostAddress] = spaces.Dict({
-                'accessLevel'     : spaces.MultiBinary(3),
-                'hostAddress'     : spaces.MultiBinary(4),
-                'openPorts'       : spaces.MultiBinary(16),
-                'services'        : spaces.MultiBinary(4),
-                'vulnerabilities' : spaces.MultiBinary(10)
-            })
+        self.obvState: OrderedDict = OrderedDict({
+            'accessLevel': spaces.MultiBinary(3),
+            'hostAddress': spaces.MultiBinary(4),
+            'openPorts': spaces.MultiBinary(16),
+            'services': spaces.MultiBinary(4),
+            'vulnerabilities': spaces.MultiBinary(10)
+        })
 
         # Initialize The Gym Space
-        gym.Space.__init__(self, None, None)
+        spaces.Dict.__init__(self, self.obvState)
 
         # Generates The Initial Observation State
         self._initialObvState = self._generateInitialObvState()
@@ -561,16 +554,16 @@ class ObservationSpace(gym.Space, ABC):
         _initialObvState: OrderedDict = OrderedDict()
 
         # Adds The Parsed State
-        for stateSpace in self.stateSpaces:
-            hostAddress = stateSpace.decodeHostAddress()
-            _initialObvState[hostAddress] = OrderedDict({
-                'accessLevel'     : stateSpace.accessLevel,
-                'hostAddress'     : stateSpace.hostAddress,
-                'openPorts'       : stateSpace.openPorts,
-                'services'        : stateSpace.services,
-                'vulnerabilities' : stateSpace.vulnerabilities
-            })
+        stateSpace = self.stateSpaces[0]
+        _initialObvState = OrderedDict({
+            'accessLevel'     : stateSpace.accessLevel,
+            'hostAddress'     : stateSpace.hostAddress,
+            'openPorts'       : stateSpace.openPorts,
+            'services'        : stateSpace.services,
+            'vulnerabilities' : stateSpace.vulnerabilities
+        })
 
+        # Returns The First State In The States Array As An Initial Observation State
         return _initialObvState
 
     # Function that returns a copy of yhe initial observation state
