@@ -53,17 +53,8 @@ class Environment(gym.Env):
 
         # Full state space for observation.
         # TODO ingest nettacker json
-        self._observation_space = ObservationSpace()
-
-        self.observation_space = spaces.Dict({
-            'accessLevel'     : spaces.MultiBinary(3),
-            'hostAddress'     : spaces.MultiBinary(4),
-            'openPorts'       : spaces.MultiBinary(16),
-            'services'        : spaces.MultiBinary(4),
-            'vulnerabilities' : spaces.MultiBinary(10)
-        })
-        
-        
+        self.observation_space = ObservationSpace()
+    
         self.network = self._construct_network(self.verbose)
 
 
@@ -125,7 +116,7 @@ class Environment(gym.Env):
         Returns:
             dict obs : the intial observation of the network environment
         """
-        return self._observation_space.getInitialObvState()
+        return self.observation_space.getInitialObvState()
 
 
     def render(self):
