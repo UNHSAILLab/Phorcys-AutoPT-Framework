@@ -13,7 +13,6 @@ from enum import Enum
 from sklearn.preprocessing import OneHotEncoder
 from typing import List
 
-
 # Enum Class AccessLevel
 # Class For Describing Access Levels
 # @author Jordan Zimmitti
@@ -571,12 +570,9 @@ class ObservationSpace(spaces.Dict, ABC):
     def getInitialObvState(self) -> OrderedDict:
         return copy.deepcopy(self._initialObvState)
 
-stateParser = StateParser('input.json')
-states = stateParser.stateSpaces
-for state in states:
-    state.print()
-
 obvSpace = ObservationSpace()
 obvState = obvSpace.getInitialObvState()
-print(obvSpace.obvState)
-print(obvState)
+for state in obvSpace.stateSpaces:
+    state.print()
+
+print(f'\n{obvState}')
