@@ -100,15 +100,19 @@ class Environment(gym.Env):
 
     def step(self, action):
         """ TODO: add step of action"""
+        """ return obs, reward, done, info """
 
-        print(action)
-        target, action_type = action['target'], action['action']
+        # print(action)
+        # target, action_type = action['target'], action['action']
 
-        action_cost = self._check_action_type_cost(action_type)
+        # action_cost = self._check_action_type_cost(action_type)
 
         # if not access level
-        if self.current_state[target]['access_level'] == [0, 0]:
-            return self.current_state, 0 - action_cost, False, {}
+        # if self.current_state[target]['access_level'] == [0, 0]:
+        #     return self.current_state, 0 - action_cost, False, {}
+
+        import random
+        return self.observation_space.getInitialObvState(), float(random.randint(-20, 20)), random.randint(-10, 1), {}
 
     def reset(self):
         """
