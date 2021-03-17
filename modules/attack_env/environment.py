@@ -43,16 +43,12 @@ class Environment(gym.Env):
         # create the state space as the observation
 
         # TODO: Fix action space.
-        self.action_space = spaces.Tuple((
-            spaces.Discrete(4), #target
-            spaces.Discrete(16), # port
-            spaces.Discrete(10) # metasploit module
-        ))
+        self.action_space = spaces.Dict({
+            'target': spaces.Discrete(4), #target
+            'port': spaces.Discrete(16), # port
+            'exploit': spaces.Discrete(10) # metasploit module
+        })
 
-        # self.action_space = flatten_space(self.action_space)
-
-        # Full state space for observation.
-        # TODO ingest nettacker json
         self.observation_space = ObservationSpace()
     
         self.network = self._construct_network(self.verbose)
@@ -102,7 +98,8 @@ class Environment(gym.Env):
         """ TODO: add step of action"""
         """ return obs, reward, done, info """
 
-        # print(action)
+        print(action)
+        
         # target, action_type = action['target'], action['action']
 
         # action_cost = self._check_action_type_cost(action_type)
