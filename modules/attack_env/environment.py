@@ -37,6 +37,9 @@ class Environment(gym.Env):
         self.logger.debug(f"JSON FROM Nettacker: {nettacker_json}")
         self.verbose = verbose
 
+        # metasploit interface connected
+
+
         # create all actions
 
         # now that we have nettacker_json 
@@ -78,19 +81,13 @@ class Environment(gym.Env):
         # value if success
         # service information
 
-        target = action['target']
-        action = action['action']
-        port = action['port']
+        # convert using actionspace
 
-        # translate first to orginal encoding
+        # run metasploit module with actoinspace settings
 
-        if action['action'] == 'scan':
-            # run metasploit module
-            raise "Wait for Metasploit integration"
-        elif action['action'] == 'exploit':
-            raise "Wait for Metasploit integration"
-        else:
-            pass 
+        # return user information
+
+
 
         return True, 10, 0.0 # return will be changed once ready
 
@@ -98,6 +95,7 @@ class Environment(gym.Env):
         """ TODO: add step of action"""
         """ return obs, reward, done, info """
 
+        data = self._take_action(action)
         print(action)
         
         # target, action_type = action['target'], action['action']
