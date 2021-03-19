@@ -13,6 +13,12 @@ from enum import Enum
 from sklearn.preprocessing import OneHotEncoder
 from typing import List
 
+<<<<<<< HEAD:state/StateSpace.py
+=======
+
+import numpy as np
+
+>>>>>>> GymEnvironment:modules/attack_env/StateSpace.py
 # Enum Class AccessLevel
 # Class For Describing Access Levels
 # @author Jordan Zimmitti
@@ -516,7 +522,7 @@ class StateParser:
 # Python Class ObservationSpace
 # Class That Creates And Handles The Observation Space
 # @author Jordan Zimmitti
-class ObservationSpace(spaces.Dict, ABC):
+class ObservationSpace(spaces.Dict):
 
     # Parses The JSON Data To Create The State Space
     stateSpaces: List[StateSpace] = StateParser('input.json').stateSpaces
@@ -531,19 +537,32 @@ class ObservationSpace(spaces.Dict, ABC):
     def __init__(self):
 
         # Defines The Observation Space As A Ordered Dict
-        self.obvState: OrderedDict = OrderedDict({
-            'accessLevel': spaces.MultiBinary(3),
-            'hostAddress': spaces.MultiBinary(4),
-            'openPorts': spaces.MultiBinary(16),
-            'services': spaces.MultiBinary(4),
-            'vulnerabilities': spaces.MultiBinary(10)
-        })
+        self.obvState: OrderedDict = OrderedDict()
 
-        # Initialize The Gym Space
-        spaces.Dict.__init__(self, self.obvState)
+        # Iterate Through Each State In The State Space
+        for stateSpace in self.stateSpaces:
+
+            # Describe The Observation State For Each Host
+            hostAddress = stateSpace.decodeHostAddress()
+            self.obvState[hostAddress] = spaces.Dict({
+                'accessLevel'     : spaces.MultiBinary(3),
+                'hostAddress'     : spaces.MultiBinary(4),
+                'openPorts'       : spaces.MultiBinary(16),
+                'services'        : spaces.MultiBinary(4),
+                'vulnerabilities' : spaces.MultiBinary(10)
+            })
 
         # Generates The Initial Observation State
         self._initialObvState = self._generateInitialObvState()
+
+                # Initialize The Gym Space
+        spaces.Dict.__init__(self, {
+            'accessLevel'     : spaces.MultiBinary(3),
+            'hostAddress'     : spaces.MultiBinary(4),
+            'openPorts'       : spaces.MultiBinary(16),
+            'services'        : spaces.MultiBinary(4),
+            'vulnerabilities' : spaces.MultiBinary(10)
+        })
 
     # Function that generates the initial observation state
     # @return {OrderedDict} The initial observation state
@@ -553,16 +572,17 @@ class ObservationSpace(spaces.Dict, ABC):
         _initialObvState: OrderedDict = OrderedDict()
 
         # Adds The Parsed State
-        stateSpace = self.stateSpaces[0]
-        _initialObvState = OrderedDict({
-            'accessLevel'     : stateSpace.accessLevel,
-            'hostAddress'     : stateSpace.hostAddress,
-            'openPorts'       : stateSpace.openPorts,
-            'services'        : stateSpace.services,
-            'vulnerabilities' : stateSpace.vulnerabilities
-        })
+        for stateSpace in self.stateSpaces:
+            hostAddress = stateSpace.decodeHostAddress()
+            _initialObvState = OrderedDict({
+                'accessLevel'     : stateSpace.accessLevel,
+                'hostAddress'     : stateSpace.hostAddress,
+                'openPorts'       : stateSpace.openPorts,
+                'services'        : stateSpace.services,
+                'vulnerabilities' : stateSpace.vulnerabilities
+            })
+            break
 
-        # Returns The First State In The States Array As An Initial Observation State
         return _initialObvState
 
     # Function that returns a copy of yhe initial observation state
@@ -570,9 +590,22 @@ class ObservationSpace(spaces.Dict, ABC):
     def getInitialObvState(self) -> OrderedDict:
         return copy.deepcopy(self._initialObvState)
 
+<<<<<<< HEAD:state/StateSpace.py
 obvSpace = ObservationSpace()
 obvState = obvSpace.getInitialObvState()
 for state in obvSpace.stateSpaces:
     state.print()
 
 print(f'\n{obvState}')
+=======
+
+# stateParser = StateParser('input.json')
+# states = stateParser.stateSpaces
+# for state in states:
+#     state.print()
+
+# obvSpace = ObservationSpace()
+# obvState = obvSpace.getInitialObvState()
+# print()
+# print(obvState)
+>>>>>>> GymEnvironment:modules/attack_env/StateSpace.py

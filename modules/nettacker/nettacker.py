@@ -54,7 +54,6 @@ class NettackerInterface:
 
         return content
 
-
 # descriptive One scan Port Scan, If scan_method is being set, this may be obselete
 
     def get_port_scan_data(self):
