@@ -28,13 +28,6 @@ class Environment(gym.Env):
     """ Custom Environment for Gym Interface """
     def __init__(self, nettacker_json, verbose=1):
         super(Environment, self).__init__()   
-
-        log_fmt = "[%(levelname)s] [%(asctime)-15s] %(message)s"
-        logging.basicConfig(filename='phorcys.log', format=log_fmt, level=logging.DEBUG)
-
-        self.logger = logging.getLogger('Phorcys')
-
-        self.logger.debug(f"JSON FROM Nettacker: {nettacker_json}")
         self.verbose = verbose
 
         # metasploit interface connected
