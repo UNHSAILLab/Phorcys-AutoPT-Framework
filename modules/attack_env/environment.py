@@ -11,7 +11,8 @@ from gym.spaces.utils import flatten
 from gym.spaces.utils import unflatten
 
 from collections import OrderedDict
-from .StateSpace import ObservationSpace
+from .StateSpace import AccessLevel, ObservationSpace, StateSpace
+from .ActionSpace import ActionSpace
 
 
 COST_EXPLOIT = 20.0
@@ -43,11 +44,7 @@ class Environment(gym.Env):
         # create the state space as the observation
 
         # TODO: Fix action space.
-        self.action_space = spaces.Dict({
-            'target': spaces.Discrete(4), #target
-            'port': spaces.Discrete(16), # port
-            'exploit': spaces.Discrete(10) # metasploit module
-        })
+        self.action_space = ActionSpace.getActionSpace()
 
         self.observation_space = ObservationSpace()
     
@@ -78,19 +75,15 @@ class Environment(gym.Env):
         # value if success
         # service information
 
-        target = action['target']
-        action = action['action']
-        port = action['port']
+        actions = ActionSpace(action)
 
-        # translate first to orginal encoding
+        target  = actions.getTarget()
+        port    = actions.getPort()
+        exploit = actions.getExploit()
 
-        if action['action'] == 'scan':
-            # run metasploit module
-            raise "Wait for Metasploit integration"
-        elif action['action'] == 'exploit':
-            raise "Wait for Metasploit integration"
-        else:
-            pass 
+        # todo metasploit
+
+        self.observation_space.updateState(target, AccessLevel.NO_ACCESS, port, exploit)
 
         return True, 10, 0.0 # return will be changed once ready
 
@@ -98,7 +91,10 @@ class Environment(gym.Env):
         """ TODO: add step of action"""
         """ return obs, reward, done, info """
 
-        print(action)
+        #print(action)
+        self._take_action(action)
+
+
         
         # target, action_type = action['target'], action['action']
 

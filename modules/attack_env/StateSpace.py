@@ -13,9 +13,6 @@ from enum import Enum
 from sklearn.preprocessing import OneHotEncoder
 from typing import List
 
-
-import numpy as np
-
 # Enum Class AccessLevel
 # Class For Describing Access Levels
 # @author Jordan Zimmitti
@@ -46,6 +43,63 @@ class StateSpace:
     # An Encoded List Of Successful Vulnerabilities Performed
     vulnerabilities: numpy.ndarray = []
 
+    # The Access Level Options Available
+    _accessOptions: List[List[int]] = [
+        [AccessLevel.NO_ACCESS.value],
+        [AccessLevel.USER_ACCESS.value],
+        [AccessLevel.ADMIN_ACCESS.value]
+    ]
+
+    # The Host Address Options Available
+    _hostAddressOptions: List[List[str]] = [
+        ['192.168.1.100'],
+        ['192.168.1.183'],
+        ['192.168.1.200'],
+        ['192.168.1.201']
+    ]
+
+    # The Port Options Available
+    _portOptions: List[List[int]] = [
+        [21],
+        [22],
+        [53],
+        [80],
+        [88],
+        [135],
+        [139],
+        [389],
+        [443],
+        [445],
+        [464],
+        [593],
+        [636],
+        [3268],
+        [3269],
+        [3389]
+    ]
+
+    # The Service Options Available
+    _serviceOptions: List[List[str]] = [
+        ['auxiliary/scanner/ftp/ftp_version'],
+        ['auxiliary/scanner/rdp/rdp_scanner'],
+        ['auxiliary/scanner/smb/smb_version'],
+        ['auxiliary/scanner/ssh/ssh_version']
+    ]
+
+    # The Vulnerability Options Available
+    _vulnerabilityOptions: List[List[str]] = [
+        ['auxiliary/scanner/ftp/anonymous'],
+        ['auxiliary/scanner/ftp/ftp_login'],
+        ['auxiliary/scanner/rdp/cve_2019_0708_bluekeep'],
+        ['auxiliary/scanner/smb/smb_login'],
+        ['auxiliary/scanner/smb/smb_ms17_010'],
+        ['auxiliary/scanner/ssh/ssh_login'],
+        ['exploit/unix/ftp/proftpd_133c_backdoor'],
+        ['exploit/windows/rdp/cve_2019_0708_bluekeep_rce'],
+        ['exploit/windows/smb/ms17_010_eternalblue'],
+        ['exploit/windows/smb/psexec']
+    ]
+
     # </editor-fold>
 
     # Function that initializes the class
@@ -72,15 +126,8 @@ class StateSpace:
     # @return {AccessLevel} The decoded access level
     def decodeAccessLevel(self) -> AccessLevel:
 
-        # The Access Level Options Available
-        accessOptions: List[List[int]] = [
-            [AccessLevel.NO_ACCESS.value],
-            [AccessLevel.USER_ACCESS.value],
-            [AccessLevel.ADMIN_ACCESS.value]
-        ]
-
         # Creates The Decoder To Be Fitted With The Space Of The Access Level Options
-        decoder: OneHotEncoder = OneHotEncoder().fit(accessOptions)
+        decoder: OneHotEncoder = OneHotEncoder().fit(self._accessOptions)
 
         # Gets The Decoded Access Level Number
         accessLevelNumber: int = decoder.inverse_transform(self.accessLevel.reshape(1, -1))
@@ -96,16 +143,8 @@ class StateSpace:
         if (self.hostAddress == [0, 0, 0, 0]).all():
             return ''
 
-        # The Host Address Options Available
-        hostAddressOptions: List[List[str]] = [
-            ['192.168.1.100'],
-            ['192.168.1.183'],
-            ['192.168.1.200'],
-            ['192.168.1.201']
-        ]
-
         # Creates The Decoder To Be Fitted With The Space Of The Host Address Options
-        decoder: OneHotEncoder = OneHotEncoder().fit(hostAddressOptions)
+        decoder: OneHotEncoder = OneHotEncoder().fit(self._hostAddressOptions)
 
         # Returns The Decoded Host Address
         return decoder.inverse_transform(self.hostAddress.reshape(1, -1))[0][0]
@@ -118,26 +157,6 @@ class StateSpace:
         if (self.openPorts == [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]).all():
             return [0]
 
-        # The Port Options Available
-        portOptions: List[List[int]] = [
-            [21],
-            [22],
-            [53],
-            [80],
-            [88],
-            [135],
-            [139],
-            [389],
-            [443],
-            [445],
-            [464],
-            [593],
-            [636],
-            [3268],
-            [3269],
-            [3389]
-        ]
-
         # Generate The One Hot Encoded Array
         oneHotArray: List[List[int]] = []
         for index, item in enumerate(self.openPorts):
@@ -147,7 +166,7 @@ class StateSpace:
                 oneHotArray.append(port)
 
         # Creates The Decoder To Be Fitted With The Space Of The Port Options
-        decoder: OneHotEncoder = OneHotEncoder().fit(portOptions)
+        decoder: OneHotEncoder = OneHotEncoder().fit(self._portOptions)
 
         # Gets The Decoded Services As A 2D Array
         npOpenPorts: List[List[int]] = decoder.inverse_transform(oneHotArray)
@@ -169,14 +188,6 @@ class StateSpace:
         if (self.services == [0, 0, 0, 0]).all():
             return ['']
 
-        # The Service Options Available
-        serviceOptions: List[List[str]] = [
-            ['auxiliary/scanner/ftp/ftp_version'],
-            ['auxiliary/scanner/rdp/rdp_scanner'],
-            ['auxiliary/scanner/smb/smb_version'],
-            ['auxiliary/scanner/ssh/ssh_version']
-        ]
-
         # Generate The One Hot Encoded Array
         oneHotArray: List[List[int]] = []
         for index, item in enumerate(self.services):
@@ -186,7 +197,7 @@ class StateSpace:
                 oneHotArray.append(service)
 
         # Creates The Decoder To Be Fitted With The Space Of The Service Options
-        decoder: OneHotEncoder = OneHotEncoder().fit(serviceOptions)
+        decoder: OneHotEncoder = OneHotEncoder().fit(self._serviceOptions)
 
         # Gets The Decoded Services As A 2D Array
         npServices: List[List[str]] = decoder.inverse_transform(oneHotArray)
@@ -208,20 +219,6 @@ class StateSpace:
         if (self.vulnerabilities == [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]).all():
             return ['']
 
-        # The Vulnerability Options Available
-        vulnerabilityOptions: List[List[str]] = [
-            ['auxiliary/scanner/ftp/anonymous'],
-            ['auxiliary/scanner/ftp/ftp_login'],
-            ['auxiliary/scanner/rdp/cve_2019_0708_bluekeep'],
-            ['auxiliary/scanner/smb/smb_login'],
-            ['auxiliary/scanner/smb/smb_ms17_010'],
-            ['auxiliary/scanner/ssh/ssh_login'],
-            ['exploit/unix/ftp/proftpd_133c_backdoor'],
-            ['exploit/windows/rdp/cve_2019_0708_bluekeep_rce'],
-            ['exploit/windows/smb/ms17_010_eternalblue'],
-            ['exploit/windows/smb/psexec']
-        ]
-
         # Generate The One Hot Encoded Array
         oneHotArray: List[List[int]] = []
         for index, item in enumerate(self.vulnerabilities):
@@ -231,7 +228,7 @@ class StateSpace:
                 oneHotArray.append(vulnerability)
 
         # Creates The Decoder To Be Fitted With The Space Of The Vulnerability Options
-        decoder: OneHotEncoder = OneHotEncoder().fit(vulnerabilityOptions)
+        decoder: OneHotEncoder = OneHotEncoder().fit(self._vulnerabilityOptions)
 
         # Gets The Decoded Vulnerabilities As A 2D Array
         npVulnerabilities: List[List[str]] = decoder.inverse_transform(oneHotArray)
@@ -244,6 +241,16 @@ class StateSpace:
 
         # Returns The Decoded List Of Vulnerabilities
         return vulnerabilities
+
+    # Function that gets the service options
+    # @return {List[List[str]]} The service options
+    def getServiceOptions(self) -> List[List[str]]:
+        return self._serviceOptions
+
+    # Function that gets the vulnerability Options
+    # @return {List[List[str]]} The vulnerability options
+    def getVulnerabilityOptions(self) -> List[List[str]]:
+        return self._vulnerabilityOptions
 
     # Function That Prints The State Space Object In A Nicely Formatted Way
     #
@@ -283,18 +290,11 @@ class StateSpace:
     # @param {AccessLevel} accessLevel - The level of access granted for the host machine
     def _encodeAccessLevel(self, accessLevel: AccessLevel):
 
-        # The Access Level Options Available
-        accessOptions: List[List[int]] = [
-            [AccessLevel.NO_ACCESS.value],
-            [AccessLevel.USER_ACCESS.value],
-            [AccessLevel.ADMIN_ACCESS.value]
-        ]
-
         # Converts The Access Level Found To A 2D Array
         npAccessLevel: List[List[str]] = [[accessLevel.value]]
 
         # Creates The Encoder To Be Fitted With The Space Of The Access Level Options
-        encoder: OneHotEncoder = OneHotEncoder().fit(accessOptions)
+        encoder: OneHotEncoder = OneHotEncoder().fit(self._accessOptions)
 
         # Sets The Encoded Access Level To The Access Level State
         self.accessLevel = numpy.array(encoder.transform(npAccessLevel).toarray()[0]).astype(int)
@@ -308,19 +308,11 @@ class StateSpace:
             self.hostAddress = numpy.array([0, 0, 0, 0])
             return
 
-        # The Host Address Options Available
-        hostAddressOptions: List[List[str]] = [
-            ['192.168.1.100'],
-            ['192.168.1.183'],
-            ['192.168.1.200'],
-            ['192.168.1.201']
-        ]
-
         # Converts The Host Address Found To A 2D Array
         npHostAddress: List[List[str]] = [[hostAddress]]
 
         # Creates The Encoder To Be Fitted With The Space Of The Host Address Options
-        encoder: OneHotEncoder = OneHotEncoder().fit(hostAddressOptions)
+        encoder: OneHotEncoder = OneHotEncoder().fit(self._hostAddressOptions)
 
         # Sets The Encoded Host Address To The Host Address State
         self.hostAddress = numpy.array(encoder.transform(npHostAddress).toarray()[0]).astype(int)
@@ -334,37 +326,17 @@ class StateSpace:
             self.openPorts = numpy.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
             return
 
-        # The Port Options Available
-        portOptions: List[List[int]] = [
-            [21],
-            [22],
-            [53],
-            [80],
-            [88],
-            [135],
-            [139],
-            [389],
-            [443],
-            [445],
-            [464],
-            [593],
-            [636],
-            [3268],
-            [3269],
-            [3389]
-        ]
-
         # Converts The Open Ports Found To A 2D Array
         foundOpenPorts: List[List[int]] = [[openPort] for openPort in openPorts]
 
         # Removes The Ports That We Do Not Need
         npOpenPorts: List[List[int]] = []
         for openPort in foundOpenPorts:
-            if openPort in portOptions:
+            if openPort in self._portOptions:
                 npOpenPorts.append(openPort)
 
         # Creates The Encoder To Be Fitted With The Space Of The Port Options
-        encoder: OneHotEncoder = OneHotEncoder().fit(portOptions)
+        encoder: OneHotEncoder = OneHotEncoder().fit(self._portOptions)
 
         # Encodes The Open Ports To A One Hot Encoding
         encodedOpenPorts: List[numpy.ndarray] = encoder.transform(npOpenPorts).toarray()
@@ -386,19 +358,11 @@ class StateSpace:
             self.services = numpy.array([0, 0, 0, 0])
             return
 
-        # The Service Options Available
-        serviceOptions: List[List[str]] = [
-            ['auxiliary/scanner/ftp/ftp_version'],
-            ['auxiliary/scanner/rdp/rdp_scanner'],
-            ['auxiliary/scanner/smb/smb_version'],
-            ['auxiliary/scanner/ssh/ssh_version']
-        ]
-
         # Converts The Services Found To A 2D Array
         npServices: List[List[str]] = [[service] for service in services]
 
         # Creates The Encoder To Be Fitted With The Space Of The Service Options
-        encoder: OneHotEncoder = OneHotEncoder().fit(serviceOptions)
+        encoder: OneHotEncoder = OneHotEncoder().fit(self._serviceOptions)
 
         # Encodes The Services To A One Hot Encoding
         encodedServices: List[numpy.ndarray] = encoder.transform(npServices).toarray()
@@ -420,25 +384,11 @@ class StateSpace:
             self.vulnerabilities = numpy.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
             return
 
-        # The Vulnerability Options Available
-        vulnerabilityOptions: List[List[str]] = [
-            ['auxiliary/scanner/ftp/anonymous'],
-            ['auxiliary/scanner/ftp/ftp_login'],
-            ['auxiliary/scanner/rdp/cve_2019_0708_bluekeep'],
-            ['auxiliary/scanner/smb/smb_login'],
-            ['auxiliary/scanner/smb/smb_ms17_010'],
-            ['auxiliary/scanner/ssh/ssh_login'],
-            ['exploit/unix/ftp/proftpd_133c_backdoor'],
-            ['exploit/windows/rdp/cve_2019_0708_bluekeep_rce'],
-            ['exploit/windows/smb/ms17_010_eternalblue'],
-            ['exploit/windows/smb/psexec']
-        ]
-
         # Converts The Vulnerabilities Found To A 2D Array
         npVulnerabilities: List[List[str]] = [[vulnerability] for vulnerability in vulnerabilities]
 
         # Creates The Encoder To Be Fitted With The Space Of The Vulnerability Options
-        encoder: OneHotEncoder = OneHotEncoder().fit(vulnerabilityOptions)
+        encoder: OneHotEncoder = OneHotEncoder().fit(self._vulnerabilityOptions)
 
         # Encodes The Vulnerabilities To A One Hot Encoding
         encodedVulnerabilities: List[numpy.ndarray] = encoder.transform(npVulnerabilities).toarray()
@@ -483,11 +433,9 @@ class StateParser:
 
             # Creates A State Space From The Host Data
             newStateSpace = StateSpace(
-                accessLevel     = AccessLevel.NO_ACCESS,
-                openPorts       = openPorts,
-                hostAddress     = hostAddress,
-                services        =['auxiliary/scanner/ftp/ftp_version', 'auxiliary/scanner/ssh/ssh_version'],
-                vulnerabilities =['auxiliary/scanner/ftp/anonymous', 'exploit/windows/smb/ms17_010_eternalblue']
+                accessLevel = AccessLevel.NO_ACCESS,
+                openPorts   = openPorts,
+                hostAddress = hostAddress,
             )
 
             # Adds The State Space To The State Spaces List
@@ -519,41 +467,28 @@ class StateParser:
 # Python Class ObservationSpace
 # Class That Creates And Handles The Observation Space
 # @author Jordan Zimmitti
-class ObservationSpace(spaces.Dict):
+class ObservationSpace(spaces.Dict, ABC):
 
     # Parses The JSON Data To Create The State Space
-    stateSpaces: List[StateSpace] = StateParser('input.json').stateSpaces
+    _stateSpaces        : List[StateSpace]
+    _initialStateSpaces : List[StateSpace]
 
-    # The Observation State
-    obvState: OrderedDict = OrderedDict()
+    # The Observation State Space Scope
+    _obvSpace: OrderedDict = OrderedDict()
 
     # The Generated Initial Observation State
-    _initialObvState: OrderedDict = OrderedDict()
+    _obvStates: List[OrderedDict]
+    _initialObvStates: List[OrderedDict]
 
     # Function that initializes the class
     def __init__(self):
 
-        # Defines The Observation Space As A Ordered Dict
-        self.obvState: OrderedDict = OrderedDict()
+        # Defines The State Space And Initial State Space
+        self._stateSpaces = StateParser('input.json').stateSpaces
+        self._initialStateSpaces = self._stateSpaces
 
-        # Iterate Through Each State In The State Space
-        for stateSpace in self.stateSpaces:
-
-            # Describe The Observation State For Each Host
-            hostAddress = stateSpace.decodeHostAddress()
-            self.obvState[hostAddress] = spaces.Dict({
-                'accessLevel'     : spaces.MultiBinary(3),
-                'hostAddress'     : spaces.MultiBinary(4),
-                'openPorts'       : spaces.MultiBinary(16),
-                'services'        : spaces.MultiBinary(4),
-                'vulnerabilities' : spaces.MultiBinary(10)
-            })
-
-        # Generates The Initial Observation State
-        self._initialObvState = self._generateInitialObvState()
-
-                # Initialize The Gym Space
-        spaces.Dict.__init__(self, {
+        # Defines The Scope Of The Observation Space
+        self._obvSpace: OrderedDict = OrderedDict({
             'accessLevel'     : spaces.MultiBinary(3),
             'hostAddress'     : spaces.MultiBinary(4),
             'openPorts'       : spaces.MultiBinary(16),
@@ -561,39 +496,105 @@ class ObservationSpace(spaces.Dict):
             'vulnerabilities' : spaces.MultiBinary(10)
         })
 
+        # Generates The Observation State Space And Initial Observation State Space
+        self._generateObvState()
+
+        # Initialize The Gym Space
+        spaces.Dict.__init__(self, self._obvSpace)
+
     # Function that generates the initial observation state
-    # @return {OrderedDict} The initial observation state
-    def _generateInitialObvState(self) -> OrderedDict:
+    def _generateObvState(self):
 
-        # Defines An Ordered Dict For Holding Each State
-        _initialObvState: OrderedDict = OrderedDict()
+        # Generates The List Of Observation States For Each State Space
+        self._obvStates = []
+        for obvState in self._stateSpaces:
+            self._obvStates.append(
+                OrderedDict({
+                    'accessLevel'     : obvState.accessLevel,
+                    'hostAddress'     : obvState.hostAddress,
+                    'openPorts'       : obvState.openPorts,
+                    'services'        : obvState.services,
+                    'vulnerabilities' : obvState.vulnerabilities
+                })
+            )
 
-        # Adds The Parsed State
-        for stateSpace in self.stateSpaces:
-            hostAddress = stateSpace.decodeHostAddress()
-            _initialObvState = OrderedDict({
-                'accessLevel'     : stateSpace.accessLevel,
-                'hostAddress'     : stateSpace.hostAddress,
-                'openPorts'       : stateSpace.openPorts,
-                'services'        : stateSpace.services,
-                'vulnerabilities' : stateSpace.vulnerabilities
-            })
-            break
-
-        return _initialObvState
+        # Saves A Copy Of The Initial Observation State
+        self._initialObvStates = self._obvStates
 
     # Function that returns a copy of yhe initial observation state
     # @return {OrderedDict} A copy of the initial observation state
     def getInitialObvState(self) -> OrderedDict:
-        return copy.deepcopy(self._initialObvState)
+        return copy.deepcopy(self._initialObvStates[0])
 
+    # Function That Updates The State With The New Data
+    # @param {str}         hostAddress - The target host address
+    # @param {AccessLevel} accessLevel - The level of access granted for the host machine
+    # @param {int}         port        - The port that was used by the exploit
+    # @param {str}         exploit     - The exploit that was used
+    def updateState(self, hostAddress: str, accessLevel: AccessLevel, port: int, exploit: str):
 
-# stateParser = StateParser('input.json')
-# states = stateParser.stateSpaces
-# for state in states:
-#     state.print()
+        # Gets The Current State Associated With The Host Address If It Exists//
+        currentIndex: int or None = None
+        currentStateSpace: StateSpace or None = None
+        for index, stateSpace in enumerate(self._stateSpaces):
+            if stateSpace.decodeHostAddress() == hostAddress:
+                currentIndex = index
+                currentStateSpace = stateSpace
 
+        # Checks If A State Was Found
+        if currentStateSpace is None or currentIndex is None:
+            raise Exception('No state exists with the inputted host address')
+
+        # When A Port Where An Exploit Was Found Was Not In The List Of Current Open Ports
+        currentOpenPorts: List[int] = currentStateSpace.decodeOpenPorts()
+        if not currentOpenPorts.__contains__(port):
+            if currentOpenPorts[0] == 0:
+                currentOpenPorts[0] = port
+            else:
+                currentOpenPorts.append(port)
+
+        # When An Exploit Found Is A Service And Is Not In The List Of Current Services
+        currentServices: List[str] or None = currentStateSpace.decodeServices()
+        if currentStateSpace.getServiceOptions().__contains__([exploit]):
+            if not currentServices.__contains__(exploit):
+                if currentServices[0] == '':
+                    currentServices[0] = exploit
+                else:
+                    currentServices.append(exploit)
+        elif currentServices[0] == '':
+            currentServices = None
+
+        # When An Exploit Found Is A Vulnerability And Is Not In The List Of Current Vulnerabilities
+        currentVulnerabilities: List[str] or None = currentStateSpace.decodeVulnerabilities()
+        if currentStateSpace.getVulnerabilityOptions().__contains__([exploit]):
+                if not currentVulnerabilities.__contains__(exploit):
+                    if currentVulnerabilities[0] == '':
+                        currentVulnerabilities[0] = exploit
+                    else:
+                        currentVulnerabilities.append(exploit)
+        elif currentVulnerabilities[0] == '':
+            currentVulnerabilities = None
+
+        # Updates The Current State With The New Data//
+        self._stateSpaces[currentIndex] = StateSpace(
+            accessLevel     = accessLevel,
+            openPorts       = currentOpenPorts,
+            services        = currentServices,
+            vulnerabilities = currentVulnerabilities,
+            hostAddress     = hostAddress
+        )
+
+        # Updates The Current Observation State With The New Data//
+        self._obvStates[currentIndex] = OrderedDict({
+            'accessLevel'     : self._stateSpaces[currentIndex].accessLevel,
+            'hostAddress'     : self._stateSpaces[currentIndex].hostAddress,
+            'openPorts'       : self._stateSpaces[currentIndex].openPorts,
+            'services'        : self._stateSpaces[currentIndex].services,
+            'vulnerabilities' : self._stateSpaces[currentIndex].vulnerabilities
+        })
 # obvSpace = ObservationSpace()
 # obvState = obvSpace.getInitialObvState()
-# print()
-# print(obvState)
+# for state in obvSpace.stateSpaces:
+#     state.print()
+#
+# print(f'\n{obvState}')
