@@ -592,6 +592,9 @@ class ObservationSpace(spaces.Dict, ABC):
             'services'        : self._stateSpaces[currentIndex].services,
             'vulnerabilities' : self._stateSpaces[currentIndex].vulnerabilities
         })
+
+        # Returns The Updated Observation State
+        return self._obvStates[currentIndex]
 # obvSpace = ObservationSpace()
 # obvState = obvSpace.getInitialObvState()
 # for state in obvSpace.stateSpaces:

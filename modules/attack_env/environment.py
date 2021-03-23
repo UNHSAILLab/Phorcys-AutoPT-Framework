@@ -82,20 +82,16 @@ class Environment(gym.Env):
         exploit = actions.getExploit()
 
         # todo metasploit
+        updatedObservation = self.observation_space.updateState(target, AccessLevel.NO_ACCESS, port, exploit)
 
-        self.observation_space.updateState(target, AccessLevel.NO_ACCESS, port, exploit)
-
-        return True, 10, 0.0 # return will be changed once ready
+        return updatedObservation
 
     def step(self, action):
         """ TODO: add step of action"""
         """ return obs, reward, done, info """
-
-        #print(action)
-        self._take_action(action)
+        updatesObservation = self._take_action(action)
 
 
-        
         # target, action_type = action['target'], action['action']
 
         # action_cost = self._check_action_type_cost(action_type)
@@ -105,7 +101,7 @@ class Environment(gym.Env):
         #     return self.current_state, 0 - action_cost, False, {}
 
         import random
-        return self.observation_space.getInitialObvState(), float(random.randint(-20, 20)), random.randint(-10, 1), {}
+        return updatesObservation, float(random.randint(-20, 20)), random.randint(-10, 1), {}
 
     def reset(self):
         """
