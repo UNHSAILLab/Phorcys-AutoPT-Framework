@@ -11,7 +11,8 @@ from gym.spaces.utils import flatten
 from gym.spaces.utils import unflatten
 
 from collections import OrderedDict
-from .StateSpace import ObservationSpace
+from .StateSpace import AccessLevel, ObservationSpace, StateSpace
+from .ActionSpace import ActionSpace
 
 
 COST_EXPLOIT = 20.0
@@ -37,20 +38,13 @@ class Environment(gym.Env):
         self.logger.debug(f"JSON FROM Nettacker: {nettacker_json}")
         self.verbose = verbose
 
-        # metasploit interface connected
-
-
         # create all actions
 
         # now that we have nettacker_json 
         # create the state space as the observation
 
         # TODO: Fix action space.
-        self.action_space = spaces.Dict({
-            'target': spaces.Discrete(4), #target
-            'port': spaces.Discrete(16), # port
-            'exploit': spaces.Discrete(10) # metasploit module
-        })
+        self.action_space = ActionSpace.getActionSpace()
 
         self.observation_space = ObservationSpace()
     
@@ -81,23 +75,23 @@ class Environment(gym.Env):
         # value if success
         # service information
 
-        # convert using actionspace
+        actions = ActionSpace(action)
 
-        # run metasploit module with actoinspace settings
+        target  = actions.getTarget()
+        port    = actions.getPort()
+        exploit = actions.getExploit()
 
-        # return user information
+        # todo metasploit
+        updatedObservation = self.observation_space.updateState(target, AccessLevel.NO_ACCESS, port, exploit)
 
-
-
-        return True, 10, 0.0 # return will be changed once ready
+        return updatedObservation
 
     def step(self, action):
         """ TODO: add step of action"""
         """ return obs, reward, done, info """
+        updatesObservation = self._take_action(action)
 
-        data = self._take_action(action)
-        print(action)
-        
+
         # target, action_type = action['target'], action['action']
 
         # action_cost = self._check_action_type_cost(action_type)
@@ -107,7 +101,7 @@ class Environment(gym.Env):
         #     return self.current_state, 0 - action_cost, False, {}
 
         import random
-        return self.observation_space.getInitialObvState(), float(random.randint(-20, 20)), random.randint(-10, 1), {}
+        return updatesObservation, float(random.randint(-20, 20)), random.randint(-10, 1), {}
 
     def reset(self):
         """
