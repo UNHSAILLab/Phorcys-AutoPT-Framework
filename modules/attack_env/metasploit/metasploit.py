@@ -143,7 +143,7 @@ class MetasploitInterface:
        
         if "Anonymous READ" in results:
             success = True
-            user_level = ""
+            user_level = "USER_ACCESS"
         else:
             success = False
             user_level = ""
