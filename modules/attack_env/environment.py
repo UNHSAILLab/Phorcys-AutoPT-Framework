@@ -81,6 +81,7 @@ class Environment(gym.Env):
         port    = actions.getPort()
         exploit = actions.getExploit()
 
+
         # todo metasploit
         updatedObservation = self.observation_space.updateState(target, AccessLevel.NO_ACCESS, port, exploit)
 
