@@ -11,8 +11,7 @@ tf.get_logger().setLevel('ERROR')
 ray.init()
 
 
-
-env = Environment("xyz", verbose=0)
+env = Environment("xyz", isVerbose=False)
 
 register_env('phorcys', lambda c: env)
 
