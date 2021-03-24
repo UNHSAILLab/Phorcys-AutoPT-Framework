@@ -33,7 +33,7 @@ class MetasploitInterface:
     #     return client
 
     def run(self, target, exploit, port): # This will just take in the info and use it   - does it just turn into self.client.etc?
-        
+        success, user_level = False, ''
         # switch statement to select exploit
         if(exploit == 'auxiliary/scanner/ftp/anonymous'):
             success, user_level, exploit = self.scanFTP(target, exploit, port)
@@ -54,7 +54,7 @@ class MetasploitInterface:
 
     def exploitFTP(self, target, exploit, port):
         """ SETS UP THE MSFRPC API CLIENT"""
-        
+        success, user_level = False, ''
         split_string = exploit.split('/')
         original_exploit = exploit ## obtains the full original exploit string for return
 
@@ -123,7 +123,7 @@ class MetasploitInterface:
     
     def scanFTP(self, target, exploit, port):
         """ SETS UP THE MSFRPC API CLIENT"""
-        
+        success, user_level = False, ''
         original_exploit = exploit ## obtains the full exploit for return
 
         split_string = exploit.split('/') ## SPLIT ON / and rejoin accordingly
@@ -152,7 +152,7 @@ class MetasploitInterface:
 
 
     def eternalBlue(self, target, exploit, port):
-
+        success, user_level = False, ''
         split_string = exploit.split('/') ## SPLIT ON / and rejoin accordingly
         original_exploit = exploit
 
@@ -221,7 +221,7 @@ class MetasploitInterface:
         return success, user_level, original_exploit
 
     def rdpScanner(self, target, exploit, port):
-        
+        success, user_level = False, ''
         original_exploit = exploit
 
         split_string = exploit.split('/') ## SPLIT ON / and rejoin accordingly
@@ -248,7 +248,7 @@ class MetasploitInterface:
         return success, user_level, original_exploit
 
     def blueKeep(self, target, exploit, port):
-       
+        success, user_level = False, ''
         original_exploit = exploit
 
         split_string = exploit.split('/') ## SPLIT ON / and rejoin accordingly

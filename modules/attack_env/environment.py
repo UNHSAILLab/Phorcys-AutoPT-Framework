@@ -1,5 +1,22 @@
 # https://towardsdatascience.com/creating-a-custom-openai-gym-environment-for-stock-trading-be532be3910e
 # R (s', a, s) = value(s', s) - cost(a)
+# part of cost 
+# accessLevel
+
+# VPI 
+# value of perfect information: 
+# essentially mathematical quantification observe news evidence.
+
+# custom scheme evaluating new scheme of
+# define generic attack tree and identify a list of types of information 
+# that can enhance the ability of an attacker 
+# mathematical operation adhoc values of different types of information.
+
+# check difference in access Level
+# if same don't add
+# reward function for gaining higher level access.
+
+# for now define predefined value for reward for each exploit
 
 import logging
 import pprint
@@ -108,7 +125,12 @@ class Environment(Env):
         exploit = actions.getExploit()
 
         # Runs The Exploit Chosen By The Agent
-        isSuccess, accessLevel, _ = self._metasploitAPI.run(target, exploit, port)
+        isSuccess, accessLevel, _ = self._metasploitAPI.run(target=target, exploit=exploit, port=port)
+
+        print(f"accesslevel: {accessLevel}")
+        print(f"exploit used: {exploit}")
+        print(f"Success: {isSuccess}")
+
         if isSuccess:
             accessLevelEnum = self.observation_space.getAccessLevel(accessLevel)
             updatedObservation = self.observation_space.updateState(target, accessLevelEnum, port, exploit)
