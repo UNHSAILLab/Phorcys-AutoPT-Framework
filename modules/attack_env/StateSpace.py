@@ -521,17 +521,35 @@ class ObservationSpace(spaces.Dict, ABC):
         # Saves A Copy Of The Initial Observation State
         self._initialObvStates = self._obvStates
 
+    # Function that gets the access level enum from the inputted string
+    # @param {str} accessLevel - The access level as a string
+    @staticmethod
+    def getAccessLevel(accessLevel: str) -> AccessLevel:
+        if   accessLevel == 'root': return AccessLevel.ADMIN_ACCESS
+        elif accessLevel == 'NT\\AUTHORITY SYSTEM': return AccessLevel.ADMIN_ACCESS
+        elif accessLevel == 'USER_ACCESS': return AccessLevel.USER_ACCESS
+        else: return AccessLevel.NO_ACCESS
+
     # Function that returns a copy of yhe initial observation state
     # @return {OrderedDict} A copy of the initial observation state
     def getInitialObvState(self) -> OrderedDict:
         return copy.deepcopy(self._initialObvStates[0])
+
+    # Function That Gets A Single Observation
+    # {str} hostAddress - The target host address
+    # @return {OrderedDict} The observation state that matches the inputted host address
+    def getObservation(self, hostAddress: str) -> OrderedDict:
+        for index, stateSpace in enumerate(self._stateSpaces):
+            if stateSpace.decodeHostAddress() == hostAddress:
+                return self._obvStates[index]
 
     # Function That Updates The State With The New Data
     # @param {str}         hostAddress - The target host address
     # @param {AccessLevel} accessLevel - The level of access granted for the host machine
     # @param {int}         port        - The port that was used by the exploit
     # @param {str}         exploit     - The exploit that was used
-    def updateState(self, hostAddress: str, accessLevel: AccessLevel, port: int, exploit: str):
+    # @return {OrderedDict} The updated observation state
+    def updateState(self, hostAddress: str, accessLevel: AccessLevel, port: int, exploit: str) -> OrderedDict:
 
         # Gets The Current State Associated With The Host Address If It Exists//
         currentIndex: int or None = None
@@ -595,6 +613,7 @@ class ObservationSpace(spaces.Dict, ABC):
 
         # Returns The Updated Observation State
         return self._obvStates[currentIndex]
+
 # obvSpace = ObservationSpace()
 # obvState = obvSpace.getInitialObvState()
 # for state in obvSpace.stateSpaces:
