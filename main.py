@@ -100,6 +100,7 @@ import gym, os
 import tensorflow as tf
 
 import ray
+from ray import tune
 from modules.attack_env import Environment
 from ray.rllib import agents
 from ray.tune.registry import register_env
@@ -149,33 +150,30 @@ if __name__ == '__main__':
     #sleep(10)
     # pp.pprint(scanner.get_scan_data())
     """
-    # client = MsfRpcClient(data.get('metasploit_password'), port=data.get('metasploit_port'), server=data.get('metasploit_ip'))
-    # print([m for m in dir(client) if not m.startswith('_')])
-
-    # metasploit = MetasploitInterface(data.get('metasploit_ip'), data.get('metasploit_port'), data.get('metasploit_password'), data.get('target'), 'auxiliary/scanner/ftp/anonymous')
-    # success, user_level, exploit = metasploit.scanFTP()
-
-    # metasploit = MetasploitInterface(data.get('metasploit_ip'), data.get('metasploit_port'), data.get('metasploit_password'), data.get('target'), 'exploit/unix/ftp/proftpd_133c_backdoor')
-    # success, user_level, exploit = metasploit.exploitFTP()
 
     tf.get_logger().setLevel('ERROR')
-    ray.init()
 
     env = Environment("xyz", data, isVerbose=False)
 
+    ray.init()
+
+    config = {
+        'monitor': True,
+        'train_batch_size': 50
+    }
+
     register_env('phorcys', lambda c: env)
 
-    agent = agents.a3c.A2CTrainer(env='phorcys')
+    agent = agents.a3c.A2CTrainer(env='phorcys', config=config)
 
-    N_ITER = 200
+    N_ITER = 20
     s = "{:3d} reward {:6.2f}/{:6.2f}/{:6.2f} len {:6.2f} saved {}"
 
     for n in range(N_ITER):
         result = agent.train()
 
-        if n % 100 == 0:
-            checkpoint = agent.save()
-            print("checkpoint saved at", checkpoint)
+        checkpoint = agent.save()
+        print("checkpoint saved at", checkpoint)
 
         print(s.format(
             n + 1,
@@ -185,24 +183,5 @@ if __name__ == '__main__':
             result["episode_len_mean"],
             checkpoint
         ))
-
+    agent.stop()
         # todo if no connection after certain amount of time throw error/ stop execution
-
-    #metasploit = MetasploitInterface(data.get('metasploit_ip'), data.get('metasploit_port'), data.get('metasploit_password'))
-    # success, user_level, exploit = metasploit.run(data.get('target'), 'exploit/unix/ftp/proftpd_133c_backdoor', 21)
-    #success, user_level, exploit = metasploit.run(data.get('target'), 'exploit/windows/smb/ms17_010_eternalblue', 445)
-    # success, user_level, exploit = metasploit.run(data.get('target'), 'auxiliary/scanner/ftp/anonymous', 21)
-    # success, user_level, exploit = metasploit.run(data.get('target'), 'auxiliary/scanner/rdp/rdp_scanner', 3389)
-
-
-    # metasploit = MetasploitInterface(data.get('metasploit_ip'), data.get('metasploit_port'), data.get('metasploit_password'), data.get('target'), 'auxiliary/scanner/rdp/rdp_scanner')
-    # success, user_level, exploit = metasploit.rdpScanner()
-
-    # metasploit = MetasploitInterface(data.get('metasploit_ip'), data.get('metasploit_port'), data.get('metasploit_password'), data.get('target'), 'exploit/windows/rdp/cve_2019_0708_bluekeep_rce')
-    # success, user_level, exploit = metasploit.blueKeep()
-
-    
-    # print("Main Results: ")
-    # print("Success: ", success)
-    # print("User level: " + user_level)
-    # print("Exploit: " + exploit)

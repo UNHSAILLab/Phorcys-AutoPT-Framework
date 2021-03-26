@@ -18,8 +18,8 @@
 
 # for now define predefined value for reward for each exploit
 
-import logging
-import pprint
+import logging, random, pprint
+
 from collections  import OrderedDict
 from gym          import Env
 from gym          import spaces
@@ -37,12 +37,65 @@ REWARD_SCAN    = 50.0
 
 class Environment(Env):
 
-    action_space      : spaces.Dict
-    observation_space : ObservationSpace
-    network           : OrderedDict
-    _metasploitAPI    : MetasploitInterface
-    _logger           : Logger
-    _isVerbose        : bool
+    reward_mapping = {
+        'auxiliary/scanner/ftp/ftp_version': {
+            'cost': 2,
+            'success': 5
+        },
+        'auxiliary/scanner/rdp/rdp_scanner': {
+            'cost': 2,
+            'success': 5
+        },
+        'auxiliary/scanner/smb/smb_version': {
+            'cost': 2,
+            'success': 5
+        },
+        'auxiliary/scanner/ssh/ssh_version': {
+            'cost': 2,
+            'success': 5
+        },
+        'auxiliary/scanner/ftp/anonymous': {
+            'cost': 2,
+            'success': 10
+        },
+        'auxiliary/scanner/ftp/ftp_login': {
+            'cost': 8,
+            'success': 10
+        },
+        'auxiliary/scanner/rdp/cve_2019_0708_bluekeep': {
+            'cost': 5,
+            'success': 13
+        },
+        'auxiliary/scanner/smb/smb_login': {
+            'cost': 10,
+            'success': 12
+        },
+        'auxiliary/scanner/smb/smb_ms17_010': {
+            'cost': 4,
+            'success': 8
+        },
+        'auxiliary/scanner/ssh/ssh_login': {
+            'cost': 8,
+            'success': 10
+        },
+        'exploit/unix/ftp/proftpd_133c_backdoor': {
+            'cost': 15,
+            'success': 20
+        },
+        'exploit/windows/rdp/cve_2019_0708_bluekeep_rce': {
+            'cost': 20,
+            'success': 25
+        },
+        'exploit/windows/smb/ms17_010_eternalblue': {
+            'cost': 23,
+            'success': 25
+        },
+        'exploit/windows/smb/psexec': {
+            'cost': 14,
+            'success': 20
+        }
+    }
+
 
     # The Custom Environment Class For The Gym Interface
     def __init__(
@@ -52,6 +105,8 @@ class Environment(Env):
             isVerbose        : bool = True
     ):
         super(Environment, self).__init__()
+
+        random.seed(10)
 
         # Configures The Logger For Use
         logFormat = '[%(levelname)s] [%(asctime)-15s] %(message)s'
@@ -84,28 +139,41 @@ class Environment(Env):
 
     # Selects And Action To Take And Gets Its Reward
     def step(self, action):
-        """ TODO: add step of action"""
-        """ return obs, reward, done, info """
-        updatedObservation = self._take_action(action)
+        """ Function used to take an action in the environment
+            returns:
+                - Observation
+                - reward from action executed
+                - Terminal state
+                - no info 
+        """
+        # take action
+        updatedObservation, exploit, success = self._take_action(action)
 
-        # target, action_type = action['target'], action['action']
-        # action_cost = self._check_action_type_cost(action_type)
-        # if not access level
-        # if self.current_state[target]['access_level'] == [0, 0]:
-        #     return self.current_state, 0 - action_cost, False, {}
+        # get reward function
+        reward = self._get_reward(exploit, success)
 
-        import random
-        return updatedObservation, float(random.randint(-20, 20)), random.randint(-10, 1), {}
+    
+        print(f"REWARD: {reward}")
+        # check if terminal is met.
+
+        r = random.randint(-2, 5)
+        print(f"TERMINAL STATE: {r}")
+        return updatedObservation, float(reward), True, {}
 
     # Gets The Cost Based On The Type Of Action
-    def _check_action_type_cost(self, action):
-        # will need to do a translation so (scan if auxiliary and exploit if exploit in string)
-        if action['type'] == 'scan':
-            return COST_SCAN
-        elif action['type'] == 'exploit':
-            return COST_EXPLOIT
-        else:
-            raise NotImplementedError
+    def _get_reward(self, exploit, success):
+
+        current_exploit = self.reward_mapping.get(exploit)
+
+        cost = current_exploit.get('cost')
+        reward = 0
+        if success:
+            reward = current_exploit.get('success')
+
+        action_reward = reward - cost
+
+        return action_reward
+
 
     # Constructs The Network By Getting The Initial Observation Of A Host
     def _construct_network(self) -> OrderedDict:
@@ -131,9 +199,10 @@ class Environment(Env):
         print(f"exploit used: {exploit}")
         print(f"Success: {isSuccess}")
 
+        updatedObservation = self.observation_space.getObservation(target)
+
         if isSuccess:
             accessLevelEnum = self.observation_space.getAccessLevel(accessLevel)
             updatedObservation = self.observation_space.updateState(target, accessLevelEnum, port, exploit)
-            return updatedObservation
-        else:
-            return self.observation_space.getObservation(target)
+
+        return updatedObservation, exploit, isSuccess
