@@ -18,8 +18,8 @@
 
 # for now define predefined value for reward for each exploit
 
-import logging, random, pprint
-
+import random
+import pprint
 from collections  import OrderedDict
 from gym          import Env
 from gym          import spaces
@@ -37,6 +37,7 @@ REWARD_SCAN    = 50.0
 
 class Environment(Env):
 
+    # Defines The Cost And Success Reward Values For Each Exploit
     reward_mapping = {
         'auxiliary/scanner/ftp/ftp_version': {
             'cost': 2,
@@ -96,7 +97,6 @@ class Environment(Env):
         }
     }
 
-
     # The Custom Environment Class For The Gym Interface
     def __init__(
             self,
@@ -105,7 +105,6 @@ class Environment(Env):
             isVerbose        : bool = True
     ):
         super(Environment, self).__init__()
-
         random.seed(10)
 
         # Configures The Logger For Use
@@ -146,13 +145,13 @@ class Environment(Env):
                 - Terminal state
                 - no info 
         """
-        # take action
+
+        # When The Agent Takes An Action
         updatedObservation, exploit, success = self._take_action(action)
 
-        # get reward function
+        # Gets The Reward Based On The Used Exploit And Its Success
         reward = self._get_reward(exploit, success)
 
-    
         print(f"REWARD: {reward}")
         # check if terminal is met.
 
@@ -192,17 +191,18 @@ class Environment(Env):
         port = actions.getPort()
         exploit = actions.getExploit()
 
-        # Runs The Exploit Chosen By The Agent
+        # Runs The Exploit Chosen By The Agent And
         isSuccess, accessLevel, _ = self._metasploitAPI.run(target=target, exploit=exploit, port=port)
 
-        print(f"accesslevel: {accessLevel}")
+        print(f"access level: {accessLevel}")
         print(f"exploit used: {exploit}")
         print(f"Success: {isSuccess}")
 
-        updatedObservation = self.observation_space.getObservation(target)
-
+        # Updates The Observation If Necessary
+        observation = self.observation_space.getObservation(target)
         if isSuccess:
             accessLevelEnum = self.observation_space.getAccessLevel(accessLevel)
-            updatedObservation = self.observation_space.updateState(target, accessLevelEnum, port, exploit)
+            observation = self.observation_space.updateState(target, accessLevelEnum, port, exploit)
 
-        return updatedObservation, exploit, isSuccess
+        # Returns The Observation Of The Current Target, The Exploit Used, And Whether It Was Successful Or nOt
+        return observation, exploit, isSuccess
