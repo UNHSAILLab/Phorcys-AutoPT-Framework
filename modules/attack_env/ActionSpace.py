@@ -93,8 +93,3 @@ class ActionSpace:
     def getTarget(self) -> str:
         targetId: int = self.action.get('target')
         return self._targets.get(targetId)
-
-# actionSpace = ActionSpace({'exploit': 9, 'port': 2, 'target': 3})
-# print(actionSpace.getTarget())
-# print(actionSpace.getPort())
-# print(actionSpace.getExploit())
