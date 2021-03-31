@@ -95,6 +95,7 @@ from modules.settings import Settings
 from modules.metasploit import MetasploitInterface
 
 import time
+import logging
 from modules.nettacker import NettackerInterface
 from pymetasploit3.msfrpc import MsfRpcClient
 from pymetasploit3.msfconsole import MsfRpcConsole
@@ -107,14 +108,23 @@ def arguments():
 /_/  /_//_/\___/_/  \__/\_, /___/
                        /___/
     """
-    
+    tagrget, level = '', ''
     parser = argparse.ArgumentParser(description = 'Phorcys Automated Penetration Testing Tool')
     parser.add_argument('target', type=str, help="IP Address (IPv4, IPv6, Domain, CIDR)")
+    parser.add_argument("--l", "--log", type=str, dest="logLevel", help="Set the logging level - INFO, DEBUG or ALL")
     print(banner)
     args = parser.parse_args()
-    if args.target:
+    
+    if args.target and args.logLevel:
+        logging.basicConfig(level=args.logLevel)
         target = args.target
         return target
+
+    else:
+        target = args.target
+        # level = 'NOTSET'
+    # print(level)
+    return target
 
     parser.print_help()
 if __name__ == '__main__':
@@ -130,7 +140,8 @@ if __name__ == '__main__':
         'metasploit_ip': config_parser.get('Metasploit', 'ip'),
         'metasploit_port': int(config_parser.get('Metasploit', 'port')),
         'metasploit_password': config_parser.get('Metasploit', 'password'),
-        'target': ip  
+        'target': ip
+        # 'verbosity': verbose_level
     }
     # create config
     config = Settings(**parameters)
@@ -155,10 +166,14 @@ if __name__ == '__main__':
     
 
     metasploit = MetasploitInterface(data.get('metasploit_ip'), data.get('metasploit_port'), data.get('metasploit_password'))
+
+
     # success, user_level, exploit = metasploit.run(data.get('target'), 'exploit/unix/ftp/proftpd_133c_backdoor', 21)
-    success, user_level, exploit = metasploit.run(data.get('target'), 'exploit/windows/smb/ms17_010_eternalblue', 445)
+    # success, user_level, exploit = metasploit.run(data.get('target'), 'exploit/windows/smb/ms17_010_eternalblue', 445)
     # success, user_level, exploit = metasploit.run(data.get('target'), 'auxiliary/scanner/ftp/anonymous', 21)
     # success, user_level, exploit = metasploit.run(data.get('target'), 'auxiliary/scanner/rdp/rdp_scanner', 3389)
+    success, user_level, exploit = metasploit.run(data.get('target'), 'auxiliary/scanner/ftp/ftp_login', 21)
+    # success, user_level, exploit = metasploit.run(data.get('target'), 'auxiliary/scanner/rdp/cve_2019_0708_bluekeep', 3389)
 
 
     # metasploit = MetasploitInterface(data.get('metasploit_ip'), data.get('metasploit_port'), data.get('metasploit_password'), data.get('target'), 'auxiliary/scanner/rdp/rdp_scanner')
@@ -168,9 +183,10 @@ if __name__ == '__main__':
     # success, user_level, exploit = metasploit.blueKeep()
 
     
-    print("Main Results: ")
-    print("Success: ", success)
-    print("User level: " + user_level)
-    print("Exploit: " + exploit)
+    # print("Main Results: ")
+    # # print("Target: " + ip)
+    # print("Success: ", success)
+    # print("User level: " + user_level)
+    # print("Exploit: " + exploit)
 
 
