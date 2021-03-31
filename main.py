@@ -36,8 +36,6 @@ banner = f"""
 Automated Penetration Testing via Deep Reinforcement Learning
 """
 
-
-
 def arguments():
 
     parser = argparse.ArgumentParser(
@@ -81,7 +79,7 @@ if __name__ == '__main__':
     # create config
     config = Settings(**parameters)
     data = config.get_dict()
-    
+
     """
     pp = pprint.PrettyPrinter(indent=4)
     # example

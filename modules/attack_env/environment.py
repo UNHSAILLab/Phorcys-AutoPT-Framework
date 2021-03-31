@@ -55,43 +55,43 @@ class Environment(Env):
             'success': 5
         },
         'auxiliary/scanner/ftp/anonymous': {
-            'cost': 2,
+            'cost': 3,
             'success': 10
         },
         'auxiliary/scanner/ftp/ftp_login': {
-            'cost': 8,
+            'cost': 2,
             'success': 10
         },
         'auxiliary/scanner/rdp/cve_2019_0708_bluekeep': {
-            'cost': 5,
+            'cost': 2,
             'success': 13
         },
         'auxiliary/scanner/smb/smb_login': {
-            'cost': 10,
+            'cost': 2,
             'success': 12
         },
         'auxiliary/scanner/smb/smb_ms17_010': {
-            'cost': 4,
+            'cost': 2,
             'success': 8
         },
         'auxiliary/scanner/ssh/ssh_login': {
-            'cost': 8,
+            'cost': 2,
             'success': 10
         },
         'exploit/unix/ftp/proftpd_133c_backdoor': {
-            'cost': 15,
+            'cost': 5,
             'success': 20
         },
         'exploit/windows/rdp/cve_2019_0708_bluekeep_rce': {
-            'cost': 20,
+            'cost': 11,
             'success': 25
         },
         'exploit/windows/smb/ms17_010_eternalblue': {
-            'cost': 23,
+            'cost': 15,
             'success': 25
         },
         'exploit/windows/smb/psexec': {
-            'cost': 14,
+            'cost': 10,
             'success': 20
         }
     }
