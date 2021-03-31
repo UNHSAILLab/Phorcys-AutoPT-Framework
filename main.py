@@ -57,7 +57,7 @@ def arguments():
 if __name__ == '__main__':
 
     tf.get_logger().setLevel('CRITICAL')
-
+    tf.compat.v1.disable_eager_execution()
     # setup parser 
     config_parser = configparser.ConfigParser()
     config_parser.read('config.ini')
@@ -98,7 +98,6 @@ if __name__ == '__main__':
     config = {
         'monitor': True,
         'train_batch_size': 50,
-        'framework': 'tf',
         'log_level': 'ERROR'
     }
 
