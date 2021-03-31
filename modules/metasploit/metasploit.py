@@ -22,7 +22,7 @@ LHOSTIP = '192.168.1.50'
 # Inputs: Exploit, Target, Port (Target Port)
 
 class MetasploitInterface:
-    portBindings = []
+    portBindings = [55553]
 
     def __init__(self, metasploit_ip, metasploit_port, metasploit_pass): # Just for metasploit connection
         self.metasploit_ip = metasploit_ip

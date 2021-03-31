@@ -168,12 +168,12 @@ if __name__ == '__main__':
     metasploit = MetasploitInterface(data.get('metasploit_ip'), data.get('metasploit_port'), data.get('metasploit_password'))
 
 
-    # success, user_level, exploit = metasploit.run(data.get('target'), 'exploit/unix/ftp/proftpd_133c_backdoor', 21)
-    # success, user_level, exploit = metasploit.run(data.get('target'), 'exploit/windows/smb/ms17_010_eternalblue', 445)
-    # success, user_level, exploit = metasploit.run(data.get('target'), 'auxiliary/scanner/ftp/anonymous', 21)
-    # success, user_level, exploit = metasploit.run(data.get('target'), 'auxiliary/scanner/rdp/rdp_scanner', 3389)
-    success, user_level, exploit = metasploit.run(data.get('target'), 'auxiliary/scanner/ftp/ftp_login', 21)
-    # success, user_level, exploit = metasploit.run(data.get('target'), 'auxiliary/scanner/rdp/cve_2019_0708_bluekeep', 3389)
+    # success, user_level, results = metasploit.run(data.get('target'), 'exploit/unix/ftp/proftpd_133c_backdoor', 21)
+    # success, user_level, results = metasploit.run(data.get('target'), 'exploit/windows/smb/ms17_010_eternalblue', 445)
+    # success, user_level, results = metasploit.run(data.get('target'), 'auxiliary/scanner/ftp/anonymous', 21)
+    # success, user_level, results = metasploit.run(data.get('target'), 'auxiliary/scanner/rdp/rdp_scanner', 3389)
+    success, user_level, results = metasploit.run(data.get('target'), 'auxiliary/scanner/ftp/ftp_login', 21)
+    # success, user_level, results = metasploit.run(data.get('target'), 'auxiliary/scanner/rdp/cve_2019_0708_bluekeep', 3389)
 
 
     # metasploit = MetasploitInterface(data.get('metasploit_ip'), data.get('metasploit_port'), data.get('metasploit_password'), data.get('target'), 'auxiliary/scanner/rdp/rdp_scanner')
