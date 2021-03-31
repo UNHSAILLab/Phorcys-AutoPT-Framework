@@ -90,7 +90,7 @@ if __name__ == '__main__':
     # pp.pprint(scanner.get_scan_data())
     """
 
-    env = Environment("xyz", data, isVerbose=False)
+    env = Environment("xyz", data)
 
     # may want to disable log_to_driver less output.
     ray.init(logging_level=logging.CRITICAL, log_to_driver=True)

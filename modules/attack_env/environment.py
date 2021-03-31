@@ -96,7 +96,6 @@ class Environment(Env):
             self,
             nettackerJson    : Dict,
             metasploitConfig : Dict,
-            isVerbose        : bool = True,
             actionsToTake    : int  = 50
     ):
         super(Environment, self).__init__()
@@ -169,7 +168,6 @@ class Environment(Env):
 
         # Returns The Initial Observation State
         initialState = self.reset()
-        if self._isVerbose: pprint.pprint(list(initialState.items()))
         return initialState
 
     # When The Agent Takes An Action
