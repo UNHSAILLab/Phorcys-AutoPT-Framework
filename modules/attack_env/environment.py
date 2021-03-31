@@ -29,12 +29,6 @@ from .ActionSpace import ActionSpace
 from .metasploit  import MetasploitInterface
 from .StateSpace  import AccessLevel, ObservationSpace
 
-# Reword Testing Values
-COST_EXPLOIT   = 20.0
-COST_SCAN      = 10.0
-REWARD_EXPLOIT = 1000.0
-REWARD_SCAN    = 50.0
-
 class Environment(Env):
 
     # Defines The Cost And Success Reward Values For Each Exploit
@@ -172,7 +166,6 @@ class Environment(Env):
         action_reward = reward - cost
 
         return action_reward
-
 
     # Constructs The Network By Getting The Initial Observation Of A Host
     def _construct_network(self) -> OrderedDict:
