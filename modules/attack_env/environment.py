@@ -96,19 +96,14 @@ class Environment(Env):
             self,
             nettackerJson    : Dict,
             metasploitConfig : Dict,
-            isVerbose        : bool = True
+            isVerbose        : bool = True,
+            actionsToTake    : int  = 50
     ):
         super(Environment, self).__init__()
-        random.seed(10)
 
-        # Configures The Logger For Use
-        logFormat = '[%(levelname)s] [%(asctime)-15s] %(message)s'
-        basicConfig(filename='phorcys.log', format=logFormat, level=logging.DEBUG)
-
-        # Define And Instantiates The Logger
-        self._logger: Logger = getLogger('Phorcys')
-        self._logger.debug(f"JSON FROM Nettacker: {nettackerJson}")
-        self._isVerbose = isVerbose
+        # The Default Amount Of Actions Taken Per Host Before The Agent Terminates//
+        self.actionsToTake = actionsToTake
+        self.terminalDict = {}
 
         # Instantiates The Action Space, Observation Space, And Network
         self.action_space      : spaces.Dict      = ActionSpace.getActionSpace()
@@ -141,17 +136,19 @@ class Environment(Env):
         """
 
         # When The Agent Takes An Action
-        updatedObservation, exploit, success = self._take_action(action)
+        updatedObservation, target, port, exploit, isSuccess = self._take_action(action)
 
         # Gets The Reward Based On The Used Exploit And Its Success
-        reward = self._get_reward(exploit, success)
+        reward = self._get_reward(exploit, isSuccess)
+
+        isTerminal = self._terminal_state(target, isSuccess)
 
         print(f"REWARD: {reward}")
         # check if terminal is met.
 
         r = random.randint(-2, 5)
         print(f"TERMINAL STATE: {r}")
-        return updatedObservation, float(reward), True, {}
+        return updatedObservation, float(reward), isTerminal, {}
 
     # Gets The Cost Based On The Type Of Action
     def _get_reward(self, exploit, success):
@@ -198,4 +195,20 @@ class Environment(Env):
             observation = self.observation_space.updateState(target, accessLevelEnum, port, exploit)
 
         # Returns The Observation Of The Current Target, The Exploit Used, And Whether It Was Successful Or nOt
-        return observation, exploit, isSuccess
+        return observation, target, port, exploit, isSuccess
+
+    def _terminal_state(self, target, isSuccess):
+
+        self.terminalDict.setdefault(target, 0)
+
+        if not isSuccess:
+
+            self.terminalDict[target] = self.terminalDict[target] + 1
+            if self.terminalDict == self.actionsToTake:
+                print("TERMINATED!!!!!!!!!!!!!!!!!!!")
+                return True
+
+            return False
+
+        self.terminalDict[target] = self.terminalDict[target] - 5
+        return False
