@@ -214,14 +214,14 @@ class Environment(Env):
         if isSuccess:
 
             # Allows The Agent To Take Five More Actions On The Current Target
-            self.terminalDict[target] = self.terminalDict[target] - 5
+            self.terminal_dict[target] = self.terminal_dict[target] - 5
             return False
 
         # Adds One To The Amount Of Actions Already Taken On The Current Host
         self.terminal_dict[target] = self.terminal_dict[target] + 1
 
         # When The Max Amount Of Actions Were Taken, Terminate
-        if self.terminalDict[target] >= self.actionsToTake:
+        if self.terminal_dict[target] >= self.actions_to_take:
             print("TERMINATED!!!!!!!!!!!!!!!!!!!")
             return True
 

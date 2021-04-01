@@ -100,12 +100,14 @@ def train_agent(data, nettacker_json):
     config['monitor'] = True # write repsidoe stats to log dir ~/ray_results
     config['timesteps_per_iteration'] = 50
     config['min_iter_time_s'] = 0
-    config['horizon'] = 50
+    #config['horizon'] = 50
 
 
     #trainer = A3C.A2CTrainer(env='phorcys', config=config)
 
-    tune.run(A3C.A2CTrainer,
+    tune.run(
+        A3C.A2CTrainer,
+        name="A2C_Phorcys_Training",
         stop={"timesteps_total": 5000},
         config=config,
         checkpoint_freq=10,
