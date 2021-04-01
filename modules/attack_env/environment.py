@@ -111,7 +111,9 @@ class Environment(Env):
         # Instantiates The Action Space, Observation Space, And Network
         self.action_space      : spaces.Dict      = ActionSpace.getActionSpace()
         self.observation_space : ObservationSpace = ObservationSpace()
-        self.network           : OrderedDict      = self._construct_network()
+
+        # Variables From Ray Class To Show The Amount Of Steps To Take
+        self.spec_max_episode_steps = 50
 
         # Configures The Metasploit API
         self._metasploitAPI = MetasploitInterface(
@@ -177,12 +179,6 @@ class Environment(Env):
         # Returns The Overall Reward For The Chosen Action
         return reward - cost
 
-    # Constructs The Network By Getting The Initial Observation Of A Host
-    def _construct_network(self) -> OrderedDict:
-
-        # Returns The Initial Observation State
-        return self.reset()
-
     # When The Agent Takes An Action
     def _take_action(self, action):
 
@@ -225,7 +221,7 @@ class Environment(Env):
         self.terminal_dict[target] = self.terminal_dict[target] + 1
 
         # When The Max Amount Of Actions Were Taken, Terminate
-        if self.terminal_dict == self.actions_to_take:
+        if self.terminalDict[target] >= self.actionsToTake:
             print("TERMINATED!!!!!!!!!!!!!!!!!!!")
             return True
 
