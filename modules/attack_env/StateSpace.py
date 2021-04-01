@@ -524,6 +524,11 @@ class ObservationSpace(spaces.Dict, ABC):
             if stateSpace.decodeHostAddress() == hostAddress:
                 return self._obvStates[index]
 
+    # Gets The Observation State Spaces
+    # Returns all of the updated states within the observation
+    def getStates(self):
+        return self._stateSpaces
+
     # Function That Updates The State With The New Data
     # @param {str}         hostAddress - The target host address
     # @param {AccessLevel} accessLevel - The level of access granted for the host machine
