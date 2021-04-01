@@ -96,7 +96,7 @@ class Environment(Env):
             self,
             nettackerJson    : Dict,
             metasploitConfig : Dict,
-            actionsToTake    : int  = 50
+            actionsToTake    : int  = 20
     ):
         super(Environment, self).__init__()
 
@@ -108,6 +108,10 @@ class Environment(Env):
         self.action_space      : spaces.Dict      = ActionSpace.getActionSpace()
         self.observation_space : ObservationSpace = ObservationSpace()
         self.network           : OrderedDict      = self._construct_network()
+        
+        
+        # max steps per episoded
+        self.spec_max_episode_steps = 50 
 
         # Sets Up Metasploit API
         self._metasploitAPI = MetasploitInterface(
@@ -116,12 +120,15 @@ class Environment(Env):
             metasploitConfig.get('metasploit_password')
         )
 
+        self.reset()
+
     # Function That Is Called Periodically To Print A Rendition Of The Environment
     def render(self, mode='human'):
         raise NotImplementedError
 
     # Resets The State Of The Environment
     def reset(self) -> OrderedDict:
+        self.terminalDict = {}
         return self.observation_space.getInitialObvState()
 
     # Selects And Action To Take And Gets Its Reward
@@ -144,9 +151,8 @@ class Environment(Env):
 
         print(f"REWARD: {reward}")
         # check if terminal is met.
-
-        r = random.randint(-2, 5)
-        print(f"TERMINAL STATE: {r}")
+        print(f"ISTERMINAL: {isTerminal}")
+        
         return updatedObservation, float(reward), isTerminal, {}
 
     # Gets The Cost Based On The Type Of Action
@@ -196,13 +202,15 @@ class Environment(Env):
         return observation, target, port, exploit, isSuccess
 
     def _terminal_state(self, target, isSuccess):
+        pp = pprint.PrettyPrinter(indent=4)
 
+        pp.pprint(self.terminalDict)
         self.terminalDict.setdefault(target, 0)
 
         if not isSuccess:
 
             self.terminalDict[target] = self.terminalDict[target] + 1
-            if self.terminalDict == self.actionsToTake:
+            if self.terminalDict[target] >= self.actionsToTake:
                 print("TERMINATED!!!!!!!!!!!!!!!!!!!")
                 return True
 

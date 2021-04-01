@@ -5,8 +5,10 @@
 import argparse, textwrap, logging, configparser, ray, gym
 import tensorflow as tf
 
-from ray.rllib import agents
+import ray.rllib.agents.a3c as A3C
 from ray.tune.registry import register_env
+from ray import tune
+
 
 from modules.attack_env import Environment
 from modules.settings import Settings
@@ -53,32 +55,78 @@ def arguments():
 
     parser.print_help()
 
-
-if __name__ == '__main__':
-
-    tf.get_logger().setLevel('CRITICAL')
-    tf.compat.v1.disable_eager_execution()
-    # setup parser 
+def get_config(ip):
     config_parser = configparser.ConfigParser()
+
     config_parser.read('config.ini')
 
-    ip = arguments()
-    # setup settings
-    print(banner)
 
     parameters = {
-        'nettacker_ip': config_parser.get('Nettacker', 'ip'), 
+        'nettacker_ip': config_parser.get('Nettacker', 'ip'),
         'nettacker_port': int(config_parser.get('Nettacker', 'port')),
         'nettacker_key': config_parser.get('Nettacker', 'key'),
         'metasploit_ip': config_parser.get('Metasploit', 'ip'),
         'metasploit_port': int(config_parser.get('Metasploit', 'port')),
         'metasploit_password': config_parser.get('Metasploit', 'password'),
-        'target': ip  
+        'target': ip
     }
 
-    # create config
     config = Settings(**parameters)
-    data = config.get_dict()
+    return config.get_dict()
+
+def config_tf():
+    tf.get_logger().setLevel('CRITICAL')
+    tf.compat.v1.disable_eager_execution()
+
+
+
+def train_agent(data, nettacker_json):
+
+    env = Environment(nettacker_json, data, actionsToTake=5)
+
+    # may want to disable log_to_driver less output.
+    ray.shutdown()
+    
+    #can be security to bind 0.0.0.0 done on purpose to view it.
+    ray.init(dashboard_host='0.0.0.0', ignore_reinit_error=True)
+
+    register_env('phorcys', lambda c: env)
+
+    config = A3C.DEFAULT_CONFIG.copy()
+    config['env'] = 'phorcys'
+    #config['num_gpus'] = 2
+    config['num_workers'] = 2
+    config['log_level'] = 'DEBUG'
+    config['monitor'] = True # write repsidoe stats to log dir ~/ray_results
+    config['timesteps_per_iteration'] = 50
+    config['min_iter_time_s'] = 0
+    config['horizon'] = 50
+
+
+    #trainer = A3C.A2CTrainer(env='phorcys', config=config)
+
+    tune.run(A3C.A2CTrainer,
+        stop={"timesteps_total": 5000},
+        config=config,
+        checkpoint_freq=10,
+        max_failures=5
+    )
+
+    ray.shutdown()
+
+    
+
+if __name__ == '__main__':
+
+    config_tf()
+
+    # get scope of assessment
+    ip = arguments()
+    
+    # setup settings
+    data = get_config(ip)
+
+    print(banner)
 
     """
     pp = pprint.PrettyPrinter(indent=4)
@@ -90,39 +138,5 @@ if __name__ == '__main__':
     # pp.pprint(scanner.get_scan_data())
     """
 
-    env = Environment("xyz", data)
-
-    # may want to disable log_to_driver less output.
-    ray.init(logging_level=logging.CRITICAL, log_to_driver=True)
-
-    config = {
-        'monitor': True,
-        'train_batch_size': 50,
-        'log_level': 'ERROR'
-    }
-
-    register_env('phorcys', lambda c: env)
-
-    agent = agents.a3c.A2CTrainer(env='phorcys', config=config)
-
-    N_ITER = 20
-    s = "{:3d} reward {:6.2f}/{:6.2f}/{:6.2f} len {:6.2f} saved {}"
-
-    for n in range(N_ITER):
-        result = agent.train()
-
-        checkpoint = agent.save()
-        print("checkpoint saved at", checkpoint)
-
-        print(s.format(
-            n + 1,
-            result["episode_reward_min"],
-            result["episode_reward_mean"],
-            result["episode_reward_max"],
-            result["episode_len_mean"],
-            checkpoint
-        ))
-
-    agent.stop()
-        # todo if no connection after certain amount of time throw error/ stop execution
-    ray.shutdown()
+    # xyz will be swapped to nettacker after training
+    train_agent(data, "xyz")
