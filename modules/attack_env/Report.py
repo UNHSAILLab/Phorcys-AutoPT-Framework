@@ -1,5 +1,8 @@
+import pprint
 from typing import Dict
+from typing import List
 from .StateSpace import AccessLevel
+from .StateSpace import StateSpace
 
 class Report:
 
@@ -35,9 +38,9 @@ class Report:
 
             # Saves The Vulnerability Data
             self.hosts[host][port] = {
-                'accessLevel': accessLevel,
-                'exploit': [exploit],
-                'output': [output]
+                'accessLevel' : accessLevel,
+                'exploit'     : [exploit],
+                'output'      : [output]
             }
             return
 
@@ -57,6 +60,37 @@ class Report:
         if not self.hosts[host][port].get('exploit').__contains__(exploit):
             self.hosts[host][port].get('exploit').append(exploit)
             self.hosts[host][port].get('output').append(output)
+
+    # Function That Gets The States From The Observation And Adds The Relevant Data To The Report
+    def addStateDataToReport(self, states: List[StateSpace]):
+
+        # Adds Open Port Data From Each State To The Report
+        for state in states:
+
+            # Gets The Current Host Address
+            host = state.decodeHostAddress()
+
+            # When The Host Does Not Exist
+            if host not in self.hosts:
+
+                # Adds The Host And All Of Its Open Ports
+                self.hosts[host] = {}
+                for port in state.decodeOpenPorts():
+                    self.hosts[host][port] = {
+                        'accessLevel' : None,
+                        'exploit'     : None,
+                        'output'      : None
+                    }
+                continue
+
+            # Adds All Of The Open Ports That Do Not Already Exist
+            for port in state.decodeOpenPorts():
+                if port not in self.hosts[host]:
+                    self.hosts[host][port] = {
+                        'accessLevel' : None,
+                        'exploit'     : None,
+                        'output'      : None
+                    }
 
     # Function That Generates The Access Level Text To Show The User
     # @param {AccessLevel} accessLevel - The highest access level that the agent was able to obtain
