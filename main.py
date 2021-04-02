@@ -1,7 +1,6 @@
 #Dealing with arguments
-# fully reset docker stop $(docker ps -qa) && docker system prune -af --volumes
-# sudo tensorboard --logdir=~/ray_results
-# (test) python3 main.py 192.168.1.100,192.168.1.200,192.168.1.201,192.168.1.183,192.168.1.231,192.168.1.79,192.168.1.115
+# see tensorboard.sh
+# python3 main.py 192.168.1.100,192.168.1.200,192.168.1.201,192.168.1.183,192.168.1.231,192.168.1.79,192.168.1.115
 import os
 import tensorflow as tf
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' # remove warnings for normal runs.
@@ -45,7 +44,7 @@ def arguments():
                         default=5, help="Define training number of actions per host that is allowed. (Default: 5)")
   
     parser.add_argument("-l", "--log", dest="logLevel", nargs='?', const=1, type=str, 
-                        default='ERROR', help="Set the logging level - INFO, DEBUG, or ALL")
+                        default='ALL', help="Set the logging level - INFO or DEBUG")
                         
     args = parser.parse_args()
 
@@ -129,8 +128,6 @@ if __name__ == '__main__':
 
     # get scope of assessment
     ip, args = arguments()
-    print(args)
-    exit(0)
 
     # setup settings
     data = utils.get_config(ip)
@@ -141,9 +138,7 @@ if __name__ == '__main__':
     
     pp = pprint.PrettyPrinter(indent=4)
     scanner = NettackerInterface(**data)
-    
-    print(f"New Nettacker Scan: {args}")
-    
+     
     # create a new scan if flagged.
     if args.scan: 
         print('Creating Nettacker scan with targets provided.')

@@ -3,15 +3,6 @@ from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
-import pprint
-## SOME OPTION IDEAS...
-"""
-- wait for the netattacker api to be done scanning then.
-- Also check if it is through netattacker api done
-- Check time stamps to ensure its not a previous done test
-"""
-
-
 class NettackerInterface:
     def __init__(self, nettacker_ip, nettacker_port, nettacker_key, target, scan_method='port_scan', ping_flag=True, scan_profile='', **kwargs):
         self.nettacker_ip = nettacker_ip
@@ -29,7 +20,6 @@ class NettackerInterface:
     
     def get_existing_scans(self):
         data = {'key': self.apikey}
-        pp = pprint.PrettyPrinter(indent=4)
         
         total_hosts = 0
         
@@ -41,8 +31,6 @@ class NettackerInterface:
           
           for item in json_data:
             total_hosts = max(item.get('id'), total_hosts)
-          
-        #print(f"Total Results in Nettacker API Currently: {total_hosts}")
         
         return total_hosts
           
