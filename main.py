@@ -1,17 +1,25 @@
 #Dealing with arguments
 # fully reset docker stop $(docker ps -qa) && docker system prune -af --volumes
 # sudo tensorboard --logdir=~/ray_results
+# (test) python3 main.py 192.168.1.100,192.168.1.200,192.168.1.201,192.168.1.183,192.168.1.231,192.168.1.79,192.168.1.115
+import os
+import tensorflow as tf
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' # remove warnings for normal runs.
 
-import argparse, textwrap, logging, ray, gym
+import argparse
+import textwrap
+import pprint
+import ray
+import ipaddress
 
+from ray import tune
 import ray.rllib.agents.a3c as A3C
 from ray.tune.registry import register_env
-from ray import tune
 
 
+import modules.utils as utils
 from modules.attack_env import Environment
 from modules.nettacker import NettackerInterface
-import modules.utils as utils
 
 
 def arguments():
@@ -24,20 +32,37 @@ def arguments():
         description=textwrap.dedent(utils.banner)
     )
 
-    parser.add_argument('target', type=str, help="IP Address (IPv4, IPv6, Domain, CIDR)")
+    parser.add_argument('target', type=str, help="IPv4 Address or CIDR Notation")
+    parser.add_argument("-s", "--new_scan", dest='scan', action='store_true', 
+                        help="Scan with OWASPNettacker or use pre-existing data scan data")
+    parser.add_argument("-m", "--mute_banner", dest='banner', action='store_false',
+                        help="Hide amazing phorcys banner")
+
+    parser.add_argument("-i", "--iterations", dest='iterations', nargs='?', const=1, type=int,
+                        default=1000, help="Define number of training iterations for RL agent")
+                        
+    parser.add_argument("-a", "--actions_per_target", dest='actions', nargs='?', const=1, type=int,
+                        default=5, help="Define training number of actions per host")
+                        
     args = parser.parse_args()
 
     if args.target:
         target = args.target
-        return target
+        
+        if '/' in args.target:
+           result = [str(ip) for ip in ipaddress.IPv4Network(target, False)]
+           target = ','.join(result)
+        
+        return target, args
 
     parser.print_help()
+    
+    return None, None
 
-
-def train_agent(data, nettacker_json, actions_to_take=5, iterations=5000):
+def train_agent(data, nettacker_json, args):
     """ Used for training RL agent for the gym environment via A2C """
     
-    env = Environment(nettacker_json, data, actionsToTake=actions_to_take)
+    env = Environment(nettacker_json, data, actionsToTake=args.actions)
 
     # may want to disable log_to_driver less output.
     # just to make sure ray is cleaned up before re-enabling.
@@ -76,7 +101,7 @@ def train_agent(data, nettacker_json, actions_to_take=5, iterations=5000):
     tune.run(
         A3C.A2CTrainer,                          # ray rllib
         name="A2C_Train",                        # data set to save in ~/ray_results
-        stop={"timesteps_total": iterations},    # when to stop training
+        stop={"timesteps_total": args.iterations},    # when to stop training
         config=config,
         checkpoint_freq=1,                       # save after each iterations
         max_failures=5,                          # due to high volattily chances of msfrpc going down for a second are high
@@ -90,28 +115,37 @@ def train_agent(data, nettacker_json, actions_to_take=5, iterations=5000):
 
 if __name__ == '__main__':
 
-    
+     
     # disable tensorflow settings
     utils.config_tf()
 
     # get scope of assessment
-    ip = arguments()
-    
+    ip, args = arguments()
+
     # setup settings
     data = utils.get_config(ip)
     
-    utils.print_banner()
+    if args.banner:
+        utils.print_banner()
 
-    # TODO: Setup nettacker fully functional with everything else. 
-    """
+    
     pp = pprint.PrettyPrinter(indent=4)
-    # example
     scanner = NettackerInterface(**data)
-    # results = scanner.new_scan()
-    pp.pprint(scanner.get_port_scan_data())
-    #sleep(10)
-    # pp.pprint(scanner.get_scan_data())
-    """
-
-    # xyz will be swapped to nettacker after training
-    train_agent(data, "xyz")
+    
+    print(f"New Nettacker Scan: {args}")
+    
+    # create a new scan if flagged.
+    if args.scan: 
+        print('Creating Nettacker scan with targets provided.')
+        
+        results = scanner.new_scan()
+        pp.pprint(results)
+    
+    # get hosts ports
+    nettacker_json = scanner.get_port_scan_data(new_scan=args.scan)
+    
+    pp.pprint(nettacker_json)
+    
+    
+    exit(0)
+    train_agent(data, nettacker_json, args)

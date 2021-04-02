@@ -1,6 +1,7 @@
 import configparser
 
 import tensorflow as tf
+import os
 from .settings import Settings
 
 
@@ -36,9 +37,6 @@ def print_banner():
     
 
 def config_tf():
-    """ Configuration tensorflow to disable eager execution and don't show redudant information """
-    
-    tf.get_logger().setLevel('CRITICAL')
     tf.compat.v1.disable_eager_execution()
     
     
