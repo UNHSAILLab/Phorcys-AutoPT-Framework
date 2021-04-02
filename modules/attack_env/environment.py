@@ -18,7 +18,7 @@
 
 # for now define predefined value for reward for each exploit
 
-import logging
+import random
 import pprint
 from collections  import OrderedDict
 from gym          import Env
@@ -27,52 +27,105 @@ from logging      import Logger, basicConfig, getLogger
 from typing       import Dict
 from .ActionSpace import ActionSpace
 from .metasploit  import MetasploitInterface
+from .Report      import Report
 from .StateSpace  import AccessLevel, ObservationSpace
-
-# Reword Testing Values
-COST_EXPLOIT   = 20.0
-COST_SCAN      = 10.0
-REWARD_EXPLOIT = 1000.0
-REWARD_SCAN    = 50.0
 
 class Environment(Env):
 
-    action_space      : spaces.Dict
-    observation_space : ObservationSpace
-    network           : OrderedDict
-    _metasploitAPI    : MetasploitInterface
-    _logger           : Logger
-    _isVerbose        : bool
+    # Defines The Cost And Success Reward Values For Each Exploit
+    reward_mapping: Dict[str, Dict[str, int]] = {
+        'auxiliary/scanner/ftp/ftp_version': {
+            'cost'    : 2,
+            'success' : 5
+        },
+        'auxiliary/scanner/rdp/rdp_scanner': {
+            'cost'    : 2,
+            'success' : 5
+        },
+        'auxiliary/scanner/smb/smb_version': {
+            'cost'    : 2,
+            'success' : 5
+        },
+        'auxiliary/scanner/ssh/ssh_version': {
+            'cost'    : 2,
+            'success' : 5
+        },
+        'auxiliary/scanner/ftp/anonymous': {
+            'cost'    : 3,
+            'success' : 10
+        },
+        'auxiliary/scanner/ftp/ftp_login': {
+            'cost'    : 2,
+            'success' : 10
+        },
+        'auxiliary/scanner/rdp/cve_2019_0708_bluekeep': {
+            'cost'    : 2,
+            'success' : 13
+        },
+        'auxiliary/scanner/smb/smb_login': {
+            'cost'    : 2,
+            'success' : 12
+        },
+        'auxiliary/scanner/smb/smb_ms17_010': {
+            'cost'    : 2,
+            'success' : 8
+        },
+        'auxiliary/scanner/ssh/ssh_login': {
+            'cost'    : 2,
+            'success' : 15
+        },
+        'exploit/unix/ftp/proftpd_133c_backdoor': {
+            'cost'    : 5,
+            'success' : 15
+        },
+        'exploit/windows/rdp/cve_2019_0708_bluekeep_rce': {
+            'cost'    : 8,
+            'success' : 25
+        },
+        'exploit/windows/smb/ms17_010_eternalblue': {
+            'cost'    : 8,
+            'success' : 25
+        },
+        'exploit/windows/smb/psexec': {
+            'cost'    : 8,
+            'success' : 20
+        }
+    }
 
     # The Custom Environment Class For The Gym Interface
     def __init__(
             self,
             nettackerJson    : Dict,
             metasploitConfig : Dict,
-            isVerbose        : bool = True
+            actionsToTake    : int  = 20,
+            logLevel         : str  = 'ERROR'
     ):
         super(Environment, self).__init__()
 
-        # Configures The Logger For Use
-        logFormat = '[%(levelname)s] [%(asctime)-15s] %(message)s'
-        basicConfig(filename='phorcys.log', format=logFormat, level=logging.DEBUG)
+        # The Default Amount Of Actions Taken Per Host Before The Agent Terminates
+        self.actions_to_take: int = actionsToTake
+        self.terminal_dict: Dict[str, int] = {}
 
-        # Define And Instantiates The Logger
-        self._logger: Logger = getLogger('Phorcys')
-        self._logger.debug(f"JSON FROM Nettacker: {nettackerJson}")
-        self._isVerbose = isVerbose
+        # Instantiates The Reporting Class For Keeping Track Of Data To Show The User
+        self.report = Report()
 
         # Instantiates The Action Space, Observation Space, And Network
         self.action_space      : spaces.Dict      = ActionSpace.getActionSpace()
         self.observation_space : ObservationSpace = ObservationSpace()
-        self.network           : OrderedDict      = self._construct_network()
 
-        # Sets Up Metasploit API
+        # Variables From Ray Class To Show The Amount Of Steps To Take
+        self.spec_max_episode_steps = 30
+
+        # Configures The Metasploit API
         self._metasploitAPI = MetasploitInterface(
             metasploitConfig.get('metasploit_ip'),
             metasploitConfig.get('metasploit_port'),
-            metasploitConfig.get('metasploit_password')
+            metasploitConfig.get('metasploit_password'), 
+            logLevel
         )
+
+        # Resets The Environment
+        self.reset()
 
     # Function That Is Called Periodically To Print A Rendition Of The Environment
     def render(self, mode='human'):
@@ -80,60 +133,97 @@ class Environment(Env):
 
     # Resets The State Of The Environment
     def reset(self) -> OrderedDict:
+        self.terminal_dict = {}
         return self.observation_space.getInitialObvState()
 
-    # Selects And Action To Take And Gets Its Reward
+    # Selects An Action To Take
     def step(self, action):
-        """ TODO: add step of action"""
-        """ return obs, reward, done, info """
-        updatedObservation = self._take_action(action)
+        """ Function used to take an action in the environment
+            returns:
+                - Observation
+                - reward from action executed
+                - Terminal state
+                - no info 
+        """
 
-        # target, action_type = action['target'], action['action']
-        # action_cost = self._check_action_type_cost(action_type)
-        # if not access level
-        # if self.current_state[target]['access_level'] == [0, 0]:
-        #     return self.current_state, 0 - action_cost, False, {}
+        # Gets The Data From The Action That The Agent Has Taken
+        updatedObservation, accessLevel, target, port, exploit, output, isSuccess = self._take_action(action)
 
-        import random
-        return updatedObservation, float(random.randint(-20, 20)), random.randint(-10, 1), {}
+        # When An Exploit Was Successful Update The Report Data
+        if isSuccess: self.report.updateReportData(accessLevel, target, port, exploit, output)
+
+        # Gets The Reward Based On The Used Exploit And Its Success
+        reward = self._get_reward(exploit, isSuccess)
+
+        # Gets Whether The Terminal State Has Been Triggered
+        isTerminal = self._terminal_state(target, isSuccess)
+
+        # Temporary Printing Of Step Data
+        print(f"Exploit: {exploit}")
+        print(f"AccessLevel: {accessLevel}")
+        print(f"REWARD: {reward}")
+        print(f"ISTERMINAL: {isTerminal}")
+
+        # Returns The Step Back To The Agent
+        return updatedObservation, float(reward), isTerminal, {}
 
     # Gets The Cost Based On The Type Of Action
-    def _check_action_type_cost(self, action):
-        # will need to do a translation so (scan if auxiliary and exploit if exploit in string)
-        if action['type'] == 'scan':
-            return COST_SCAN
-        elif action['type'] == 'exploit':
-            return COST_EXPLOIT
-        else:
-            raise NotImplementedError
+    def _get_reward(self, exploit, success):
 
-    # Constructs The Network By Getting The Initial Observation Of A Host
-    def _construct_network(self) -> OrderedDict:
+        # Gets The Current Exploit Reward Dictionary Based On The Exploit Used By The Agent
+        current_exploit = self.reward_mapping.get(exploit)
 
-        # Returns The Initial Observation State
-        initialState = self.reset()
-        if self._isVerbose: pprint.pprint(list(initialState.items()))
-        return initialState
+        # Gets The Cost Of Using The Chosen Exploit
+        cost = current_exploit.get('cost')
+
+        # When The Exploit Is Successful Get The Reward
+        reward = 0
+        if success: reward = current_exploit.get('success')
+
+        # Returns The Overall Reward For The Chosen Action
+        return reward - cost
 
     # When The Agent Takes An Action
     def _take_action(self, action):
 
         # Parses The Actions From Their Discrete Values
         actions = ActionSpace(action)
-        target = actions.getTarget()
-        port = actions.getPort()
+        target  = actions.getTarget()
+        port    = actions.getPort()
         exploit = actions.getExploit()
 
-        # Runs The Exploit Chosen By The Agent
-        isSuccess, accessLevel, _ = self._metasploitAPI.run(target=target, exploit=exploit, port=port)
+        # Runs The Exploit Chosen By The Agent And
+        isSuccess, accessLevel, output = self._metasploitAPI.run(target=target, exploit=exploit, port=port)
 
-        print(f"accesslevel: {accessLevel}")
-        print(f"exploit used: {exploit}")
-        print(f"Success: {isSuccess}")
-
+        # Updates The Observation If Necessary
+        observation = self.observation_space.getObservation(target)
         if isSuccess:
             accessLevelEnum = self.observation_space.getAccessLevel(accessLevel)
-            updatedObservation = self.observation_space.updateState(target, accessLevelEnum, port, exploit)
-            return updatedObservation
-        else:
-            return self.observation_space.getObservation(target)
+            observation = self.observation_space.updateState(target, accessLevelEnum, port, exploit)
+
+        # Returns The Observation Of The Current Target, The Exploit Used, And Whether It Was Successful Or not
+        return observation, accessLevel, target, port, exploit, output, isSuccess
+
+    # Checks Whether The Agent Has Triggered The Terminal State
+    def _terminal_state(self, target, isSuccess):
+
+        # Sets The Default Amount Of Actions When The Target Does Not Exist
+        self.terminal_dict.setdefault(target, 0)
+
+        # When The Action Was Successful
+        if isSuccess:
+
+            # Allows The Agent To Take Five More Actions On The Current Target
+            self.terminal_dict[target] = self.terminal_dict[target] - 5
+            return False
+
+        # Adds One To The Amount Of Actions Already Taken On The Current Host
+        self.terminal_dict[target] = self.terminal_dict[target] + 1
+
+        # When The Max Amount Of Actions Were Taken, Terminate
+        if self.terminal_dict[target] >= self.actions_to_take:
+            print("TERMINATED!!!!!!!!!!!!!!!!!!!")
+            return True
+
+        # Continue Taking Actions
+        return False

@@ -1,208 +1,160 @@
-# #Dealing with arguments
-# # fully reset docker stop $(docker ps -qa) && docker system prune -af --volumes
-
-# import argparse
-# import pprint
-# import configparser
-# from modules.settings import Settings
-# import time
-# from modules.nettacker import NettackerInterface
-
-# # from pymetasploit3.msfrpc import MsfRpcClient
-# # from pymetasploit3.msfconsole import MsfRpcConsole
-
-# #['auxiliary', 'encodeformats', 'encoders', 
-# # 'evasion', 'execute', 'exploits', 'nops', 'payloads', 'platforms', 'post', 'rpc', 'use']    
-# def dirty_search(client, keyword):
-#     return [m for m in client.modules.exploits if keyword in m]
-
-# def setExploits(client, m, targetIP, port): #takes results of dirty search, target & port, and client?
-#     for x in m: ## for every result in the search?
-#         exploit = client.modules.use('exploit', x) # Uses the result of the exploit search
-#         exploit.target = 0 # WE NEED TO SPECIFY WHICH TARGET WE ARE TARGETING
-#         exploit.targetpayloads() # Need to define the common payloads and what we want - this takes the ones that work
-#         payload = client.modules.use('payload', 'windows/meterpreter/reverse_tcp') # Sets a payload we would want to use
-#         exploit['RHOSTS'] = targetIP # Need to obtain targetIP addresss somehow
-#         exploit['RPORT'] = port # Need to specify port?
-
-
-# def arguments():
-#     parser = argparse.ArgumentParser(description = 'Phorcys Automated Penetration Testing Tool')
-#     parser.add_argument('target', type=str, help="IP Address (IPv4, IPv6, Domain, CIDR)")
-
-#     args = parser.parse_args()
-    
-#     if args.target:
-#         target = args.target
-#         return target
-    
-#     parser.print_help()
-
-# if __name__ == '__main__':
-
-#     # setup parser 
-#     config_parser = configparser.ConfigParser()
-#     config_parser.read('config.ini')
-
-#     ip = arguments()
-
-#     # setup settings
-#     parameters = {
-#         'nettacker_ip': config_parser.get('Nettacker', 'ip'), 
-#         'nettacker_port': int(config_parser.get('Nettacker', 'port')),
-#         'nettacker_key': config_parser.get('Nettacker', 'key'),
-#         'metasploit_ip': config_parser.get('Metasploit', 'ip'),
-#         'metasploit_port': int(config_parser.get('Metasploit', 'port')),
-#         'metasploit_password': config_parser.get('Metasploit', 'password'),
-#         'target': ip 
-#     }
-#     # create config
-#     config = Settings(**parameters)
-
-#     data = config.get_dict()
-
-#     pp = pprint.PrettyPrinter(indent=4)
-#     # example
-#     scanner = NettackerInterface(**data, ping_flag=True)
-#     # results = scanner.new_scan()
-#     pp.pprint(scanner.get_port_scan_data())
-
-
-#     #sleep(10)
-
-#     # pp.pprint(scanner.get_scan_data())
-
-#     # client = MsfRpcClient(data.get('metasploit_password'), port=55552, server=data.get('metasploit_ip'))
-
-#     # console_id = client.consoles.console().cid
-#     # console = client.consoles.console(console_id)
-#     # console.write("nmap 127.0.0.1")
-
-#     # while console.is_busy():
-#     #     time.sleep(5)
-#     # print(console.read())
-
-#     # method_list = [func for func in dir(console) if callable(getattr(console, func))]
-#     # print(method_list)
-
 #Dealing with arguments
-# fully reset docker stop $(docker ps -qa) && docker system prune -af --volumes
+# see tensorboard.sh
+# python3 main.py 192.168.1.100,192.168.1.200,192.168.1.201,192.168.1.183,192.168.1.231,192.168.1.79,192.168.1.115
+import os, sys
+import tensorflow as tf
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' # remove warnings for normal runs.
 
 import argparse
+import textwrap
 import pprint
-import configparser
-from modules.settings import Settings
-
-import time
-from modules.nettacker import NettackerInterface
-
-import gym, os
-import tensorflow as tf
-
 import ray
-from modules.attack_env import Environment
-from ray.rllib import agents
+import ipaddress
+
+from ray import tune
+import ray.rllib.agents.a3c as A3C
 from ray.tune.registry import register_env
 
+
+import modules.utils as utils
+from modules.attack_env import Environment
+from modules.nettacker import NettackerInterface
+from modules.attack_env.metasploit import MetasploitInterface
+
+
 def arguments():
-    banner = """
-   ___  __                   
-  / _ \/ /  ___  __________ _____
- / ___/ _ \/ _ \/ __/ __/ // (_-<
-/_/  /_//_/\___/_/  \__/\_, /___/
-                       /___/
-    """
+    """ Get the IPv4 or CIDR address information of the scope of the assessment """
     
-    parser = argparse.ArgumentParser(description = 'Phorcys Automated Penetration Testing Tool')
-    parser.add_argument('target', type=str, help="IP Address (IPv4, IPv6, Domain, CIDR)")
-    print(banner)
+    # set up argparse
+    parser = argparse.ArgumentParser(
+        prog='Phorcys',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description=textwrap.dedent(utils.banner)
+    )
+
+    parser.add_argument('target', type=str, help="Scope of the Penetration Test (IPv4 Address or CIDR Notation)")
+    parser.add_argument("-s", "--new_scan", dest='scan', action='store_true', 
+                        help="Scan with OWASPNettacker or use pre-existing data scan data")
+    parser.add_argument("-m", "--mute_banner", dest='banner', action='store_false',
+                        help="Hide amazing phorcys banner")
+
+    parser.add_argument("-i", "--iterations", dest='iterations', nargs='?', const=1, type=int,
+                        default=1000, help="Define number of training iterations for RL agent (Default: 1000)")
+                        
+    parser.add_argument("-a", "--actions_per_target", dest='actions', nargs='?', const=1, type=int,
+                        default=5, help="Define training number of actions per host that is allowed. (Default: 5)")
+
+    parser.add_argument("-w", "--workers", dest="workers", nargs='?', const=1, type=int,
+                        default=5, help="Define number of Workers for training.")
+  
+    parser.add_argument("-l", "--log", dest="logLevel", nargs='?', const=1, type=str, 
+                        default='CRITICAL', help="Set the logging level - INFO or DEBUG")
+                        
     args = parser.parse_args()
+
+    if not args.logLevel in ['INFO', 'DEBUG', 'CRITICAL']:
+        parser.print_help()
+        sys.exit(0)
+        
+        
     if args.target:
         target = args.target
-        return target
+        
+        if '/' in args.target:
+           result = [str(ip) for ip in ipaddress.IPv4Network(target, False)]
+           target = ','.join(result)
+        
+        return target, args
 
     parser.print_help()
-if __name__ == '__main__':
-    # setup parser 
-    config_parser = configparser.ConfigParser()
-    config_parser.read('config.ini')
-    ip = arguments()
-    # setup settings
-    parameters = {
-        'nettacker_ip': config_parser.get('Nettacker', 'ip'), 
-        'nettacker_port': int(config_parser.get('Nettacker', 'port')),
-        'nettacker_key': config_parser.get('Nettacker', 'key'),
-        'metasploit_ip': config_parser.get('Metasploit', 'ip'),
-        'metasploit_port': int(config_parser.get('Metasploit', 'port')),
-        'metasploit_password': config_parser.get('Metasploit', 'password'),
-        'target': ip  
-    }
-    # create config
-    config = Settings(**parameters)
-    data = config.get_dict()
-    """
-    pp = pprint.PrettyPrinter(indent=4)
-    # example
-    scanner = NettackerInterface(**data)
-    # results = scanner.new_scan()
-    pp.pprint(scanner.get_port_scan_data())
-    #sleep(10)
-    # pp.pprint(scanner.get_scan_data())
-    """
-    # client = MsfRpcClient(data.get('metasploit_password'), port=data.get('metasploit_port'), server=data.get('metasploit_ip'))
-    # print([m for m in dir(client) if not m.startswith('_')])
+    
+    return None, None
 
-    # metasploit = MetasploitInterface(data.get('metasploit_ip'), data.get('metasploit_port'), data.get('metasploit_password'), data.get('target'), 'auxiliary/scanner/ftp/anonymous')
-    # success, user_level, exploit = metasploit.scanFTP()
+def train_agent(data, nettacker_json, args):
+    """ Used for training RL agent for the gym environment via A2C """
+    
+    env = Environment(nettacker_json, data, actionsToTake=args.actions, logLevel=args.logLevel)
 
-    # metasploit = MetasploitInterface(data.get('metasploit_ip'), data.get('metasploit_port'), data.get('metasploit_password'), data.get('target'), 'exploit/unix/ftp/proftpd_133c_backdoor')
-    # success, user_level, exploit = metasploit.exploitFTP()
+    # may want to disable log_to_driver less output.
+    # just to make sure ray is cleaned up before re-enabling.
+    ray.shutdown()
+    
+    # can be security issue to bind 0.0.0.0 done on purpose to view it.
+    # just doing for the purpose of analysis
+    
+    ray.init(dashboard_host='0.0.0.0', ignore_reinit_error=True)
 
-    tf.get_logger().setLevel('ERROR')
-    ray.init()
-
-    env = Environment("xyz", data, isVerbose=False)
-
+    # register the environment so it is accessible by string name.
     register_env('phorcys', lambda c: env)
 
-    agent = agents.a3c.A2CTrainer(env='phorcys')
 
-    N_ITER = 200
-    s = "{:3d} reward {:6.2f}/{:6.2f}/{:6.2f} len {:6.2f} saved {}"
-
-    for n in range(N_ITER):
-        result = agent.train()
-
-        if n % 100 == 0:
-            checkpoint = agent.save()
-            print("checkpoint saved at", checkpoint)
-
-        print(s.format(
-            n + 1,
-            result["episode_reward_min"],
-            result["episode_reward_mean"],
-            result["episode_reward_max"],
-            result["episode_len_mean"],
-            checkpoint
-        ))
-
-        # todo if no connection after certain amount of time throw error/ stop execution
-
-    #metasploit = MetasploitInterface(data.get('metasploit_ip'), data.get('metasploit_port'), data.get('metasploit_password'))
-    # success, user_level, exploit = metasploit.run(data.get('target'), 'exploit/unix/ftp/proftpd_133c_backdoor', 21)
-    #success, user_level, exploit = metasploit.run(data.get('target'), 'exploit/windows/smb/ms17_010_eternalblue', 445)
-    # success, user_level, exploit = metasploit.run(data.get('target'), 'auxiliary/scanner/ftp/anonymous', 21)
-    # success, user_level, exploit = metasploit.run(data.get('target'), 'auxiliary/scanner/rdp/rdp_scanner', 3389)
+    # pull default configuration from ray for A2C/A3C
+    config = A3C.DEFAULT_CONFIG.copy()
+    
+    
+    config['env'] = 'phorcys'
+    #config['num_gpus'] = 2
+    
+    # async can do alot of workers
+    print(f"NUM WORKERS: {args.workers}")
+    config['num_workers'] = args.workers
+    
+    # verbosity of ray tune
+    config['log_level'] = 'DEBUG'
+    
+    # write to tensorboard
+    config['monitor'] = True # write repsidoe stats to log dir ~/ray_results
+    
+    # do this otherwise it WILL result in halting. Time to wait for all the async workers.
+    config['min_iter_time_s'] = 2
 
 
-    # metasploit = MetasploitInterface(data.get('metasploit_ip'), data.get('metasploit_port'), data.get('metasploit_password'), data.get('target'), 'auxiliary/scanner/rdp/rdp_scanner')
-    # success, user_level, exploit = metasploit.rdpScanner()
+    # just use restore to fix it
+    tune.run(
+        A3C.A2CTrainer,                          # ray rllib
+        name="A2C_Train",                        # data set to save in ~/ray_results
+        stop={"timesteps_total": args.iterations},    # when to stop training
+        config=config,
+        checkpoint_freq=15,                       # save after each iterations
+        max_failures=5,                          # due to high volattily chances of msfrpc going down for a second are high
+                                                 # add this so it doesn't terminate training unless serve error
+        checkpoint_at_end=True                   # add checkpoint once done so can continue training.
+    )
 
-    # metasploit = MetasploitInterface(data.get('metasploit_ip'), data.get('metasploit_port'), data.get('metasploit_password'), data.get('target'), 'exploit/windows/rdp/cve_2019_0708_bluekeep_rce')
-    # success, user_level, exploit = metasploit.blueKeep()
+    ray.shutdown()                           
+
+
+
+if __name__ == '__main__':
+
+     
+    # disable tensorflow settings
+    utils.config_tf()
+
+    # get scope of assessment
+    ip, args = arguments()
+
+    # setup settings
+    data = utils.get_config(ip)
+    
+    if args.banner:
+        utils.print_banner()
 
     
-    # print("Main Results: ")
-    # print("Success: ", success)
-    # print("User level: " + user_level)
-    # print("Exploit: " + exploit)
+    pp = pprint.PrettyPrinter(indent=4)
+    scanner = NettackerInterface(**data)
+     
+    # create a new scan if flagged.
+    if args.scan: 
+        print('Creating Nettacker scan with targets provided.')
+        
+        results = scanner.new_scan()
+        pp.pprint(results)
+    
+    # get hosts ports
+    nettacker_json = scanner.get_port_scan_data(new_scan=args.scan)
+
+    try:
+        train_agent(data, nettacker_json, args)
+    except KeyboardInterrupt:
+        ray.shutdown()
