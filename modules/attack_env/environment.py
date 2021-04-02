@@ -97,7 +97,8 @@ class Environment(Env):
             self,
             nettackerJson    : Dict,
             metasploitConfig : Dict,
-            actionsToTake    : int  = 20
+            actionsToTake    : int  = 20,
+            logLevel         : str  = 'ERROR'
     ):
         super(Environment, self).__init__()
 
@@ -119,7 +120,8 @@ class Environment(Env):
         self._metasploitAPI = MetasploitInterface(
             metasploitConfig.get('metasploit_ip'),
             metasploitConfig.get('metasploit_port'),
-            metasploitConfig.get('metasploit_password')
+            metasploitConfig.get('metasploit_password'), 
+            logLevel
         )
 
         # Resets The Environment
@@ -157,8 +159,8 @@ class Environment(Env):
         isTerminal = self._terminal_state(target, isSuccess)
 
         # Temporary Printing Of Step Data
-        print(f"REWARD: {reward}")
-        print(f"ISTERMINAL: {isTerminal}")
+        # print(f"REWARD: {reward}")
+        # print(f"ISTERMINAL: {isTerminal}")
 
         # Returns The Step Back To The Agent
         return updatedObservation, float(reward), isTerminal, {}
@@ -202,10 +204,6 @@ class Environment(Env):
 
     # Checks Whether The Agent Has Triggered The Terminal State
     def _terminal_state(self, target, isSuccess):
-
-        # Temporary Printing Of Terminal State Data
-        pp = pprint.PrettyPrinter(indent=4)
-        pp.pprint(self.terminal_dict)
 
         # Sets The Default Amount Of Actions When The Target Does Not Exist
         self.terminal_dict.setdefault(target, 0)

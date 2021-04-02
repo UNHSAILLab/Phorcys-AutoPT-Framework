@@ -1,7 +1,7 @@
 #Dealing with arguments
 # see tensorboard.sh
 # python3 main.py 192.168.1.100,192.168.1.200,192.168.1.201,192.168.1.183,192.168.1.231,192.168.1.79,192.168.1.115
-import os
+import os, sys
 import tensorflow as tf
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' # remove warnings for normal runs.
 
@@ -19,6 +19,7 @@ from ray.tune.registry import register_env
 import modules.utils as utils
 from modules.attack_env import Environment
 from modules.nettacker import NettackerInterface
+from modules.attack_env.metasploit import MetasploitInterface
 
 
 def arguments():
@@ -44,13 +45,13 @@ def arguments():
                         default=5, help="Define training number of actions per host that is allowed. (Default: 5)")
   
     parser.add_argument("-l", "--log", dest="logLevel", nargs='?', const=1, type=str, 
-                        default='ALL', help="Set the logging level - INFO or DEBUG")
+                        default='CRITICAL', help="Set the logging level - INFO or DEBUG")
                         
     args = parser.parse_args()
 
-    if not args.logLevel in ['INFO', 'DEBUG', 'ALL']:
+    if not args.logLevel in ['INFO', 'DEBUG', 'CRITICAL']:
         parser.print_help()
-        exit(0)
+        sys.exit(0)
         
         
     if args.target:
@@ -69,7 +70,7 @@ def arguments():
 def train_agent(data, nettacker_json, args):
     """ Used for training RL agent for the gym environment via A2C """
     
-    env = Environment(nettacker_json, data, actionsToTake=args.actions)
+    env = Environment(nettacker_json, data, actionsToTake=args.actions, logLevel=args.logLevel)
 
     # may want to disable log_to_driver less output.
     # just to make sure ray is cleaned up before re-enabling.
@@ -149,8 +150,9 @@ if __name__ == '__main__':
     # get hosts ports
     nettacker_json = scanner.get_port_scan_data(new_scan=args.scan)
     
-    pp.pprint(nettacker_json)
-    
-    
-    exit(0)
-    train_agent(data, nettacker_json, args)
+    # pp.pprint(nettacker_json)
+
+    try:
+        train_agent(data, nettacker_json, args)
+    except KeyboardInterrupt:
+        ray.shutdown()
