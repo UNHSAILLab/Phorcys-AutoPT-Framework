@@ -72,22 +72,22 @@ class Environment(Env):
         },
         'auxiliary/scanner/ssh/ssh_login': {
             'cost'    : 2,
-            'success' : 10
+            'success' : 15
         },
         'exploit/unix/ftp/proftpd_133c_backdoor': {
             'cost'    : 5,
-            'success' : 20
+            'success' : 15
         },
         'exploit/windows/rdp/cve_2019_0708_bluekeep_rce': {
-            'cost'    : 11,
+            'cost'    : 8,
             'success' : 25
         },
         'exploit/windows/smb/ms17_010_eternalblue': {
-            'cost'    : 15,
+            'cost'    : 8,
             'success' : 25
         },
         'exploit/windows/smb/psexec': {
-            'cost'    : 10,
+            'cost'    : 8,
             'success' : 20
         }
     }
@@ -160,6 +160,7 @@ class Environment(Env):
 
         # Temporary Printing Of Step Data
         print(f"Exploit: {exploit}")
+        print(f"AccessLevel: {accessLevel}")
         print(f"REWARD: {reward}")
         print(f"ISTERMINAL: {isTerminal}")
 

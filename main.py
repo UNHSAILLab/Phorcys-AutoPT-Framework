@@ -106,7 +106,7 @@ def train_agent(data, nettacker_json, args):
     config['monitor'] = True # write repsidoe stats to log dir ~/ray_results
     
     # do this otherwise it WILL result in halting. Time to wait for all the async workers.
-    config['min_iter_time_s'] = 0
+    config['min_iter_time_s'] = 2
 
 
     # just use restore to fix it
@@ -115,7 +115,7 @@ def train_agent(data, nettacker_json, args):
         name="A2C_Train",                        # data set to save in ~/ray_results
         stop={"timesteps_total": args.iterations},    # when to stop training
         config=config,
-        checkpoint_freq=1,                       # save after each iterations
+        checkpoint_freq=15,                       # save after each iterations
         max_failures=5,                          # due to high volattily chances of msfrpc going down for a second are high
                                                  # add this so it doesn't terminate training unless serve error
         checkpoint_at_end=True                   # add checkpoint once done so can continue training.
