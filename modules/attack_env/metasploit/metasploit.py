@@ -15,8 +15,8 @@ class MetasploitInterface:
         self.metasploit_pass = metasploit_pass
         self.client = MsfRpcClient(self.metasploit_pass, port = self.metasploit_port, server = self.metasploit_ip)
         # self.verbosity = verbosity
-        logging.info(f"MSFRPCD API Connected @ {self.metasploit_ip}:{self.metasploit_port}")
-        logging.info(f"MSFRPCD OBJ: {self.client}")
+        print(f"MSFRPCD API Connected @ {self.metasploit_ip}:{self.metasploit_port}")
+        print(f"MSFRPCD OBJ: {self.client}")
 
     def run(self, target, exploit, port): # This will just take in the info and use it   - does it just turn into self.client.etc?
         success, user_level = False, ''
