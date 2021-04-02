@@ -32,20 +32,28 @@ def arguments():
         description=textwrap.dedent(utils.banner)
     )
 
-    parser.add_argument('target', type=str, help="IPv4 Address or CIDR Notation")
+    parser.add_argument('target', type=str, help="Scope of the Penetration Test (IPv4 Address or CIDR Notation)")
     parser.add_argument("-s", "--new_scan", dest='scan', action='store_true', 
                         help="Scan with OWASPNettacker or use pre-existing data scan data")
     parser.add_argument("-m", "--mute_banner", dest='banner', action='store_false',
                         help="Hide amazing phorcys banner")
 
     parser.add_argument("-i", "--iterations", dest='iterations', nargs='?', const=1, type=int,
-                        default=1000, help="Define number of training iterations for RL agent")
+                        default=1000, help="Define number of training iterations for RL agent (Default: 1000)")
                         
     parser.add_argument("-a", "--actions_per_target", dest='actions', nargs='?', const=1, type=int,
-                        default=5, help="Define training number of actions per host")
+                        default=5, help="Define training number of actions per host that is allowed. (Default: 5)")
+  
+    parser.add_argument("-l", "--log", dest="logLevel", nargs='?', const=1, type=str, 
+                        default='ERROR', help="Set the logging level - INFO, DEBUG, or ALL")
                         
     args = parser.parse_args()
 
+    if not args.logLevel in ['INFO', 'DEBUG', 'ALL']:
+        parser.print_help()
+        exit(0)
+        
+        
     if args.target:
         target = args.target
         
@@ -121,6 +129,8 @@ if __name__ == '__main__':
 
     # get scope of assessment
     ip, args = arguments()
+    print(args)
+    exit(0)
 
     # setup settings
     data = utils.get_config(ip)
