@@ -10,6 +10,7 @@ import textwrap
 import pprint
 import ray
 import ipaddress
+# import logging
 
 from ray import tune
 import ray.rllib.agents.a3c as A3C
@@ -146,6 +147,9 @@ if __name__ == '__main__':
         
         results = scanner.new_scan()
         pp.pprint(results)
+
+    # if args.logLevel:
+    #     logging.basicConfig(level=args.logLevel)
     
     # get hosts ports
     nettacker_json = scanner.get_port_scan_data(new_scan=args.scan)
