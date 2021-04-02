@@ -113,7 +113,7 @@ class Environment(Env):
         self.observation_space : ObservationSpace = ObservationSpace()
 
         # Variables From Ray Class To Show The Amount Of Steps To Take
-        self.spec_max_episode_steps = 50
+        self.spec_max_episode_steps = 30
 
         # Configures The Metasploit API
         self._metasploitAPI = MetasploitInterface(

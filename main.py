@@ -2,8 +2,7 @@
 # fully reset docker stop $(docker ps -qa) && docker system prune -af --volumes
 # sudo tensorboard --logdir=~/ray_results
 
-import argparse, textwrap, logging, configparser, ray, gym
-import tensorflow as tf
+import argparse, textwrap, logging, ray, gym
 
 import ray.rllib.agents.a3c as A3C
 from ray.tune.registry import register_env
@@ -11,39 +10,18 @@ from ray import tune
 
 
 from modules.attack_env import Environment
-from modules.settings import Settings
 from modules.nettacker import NettackerInterface
+import modules.utils as utils
 
-
-RED   = "\033[1;31m"  
-BLUE  = "\033[1;34m"
-CYAN  = "\033[1;36m"
-GREEN = "\033[0;32m"
-RESET = "\033[0;0m"
-BOLD    = "\033[;1m"
-REVERSE = "\033[;7m"
-
-
-banner = f"""
-{RED}============================================================
-{CYAN}\t       ___  __                   
-{CYAN}\t      / _ \/ /  ___  __________ _____
-{CYAN}\t     / ___/ _ \/ _ \/ __/ __/ // (_-<
-{CYAN}\t    /_/  /_//_/\___/_/  \__/\_, /___/
-{CYAN}\t                           /___/
-                            
-{RED}============================================================
-
-{RESET}
-Automated Penetration Testing via Deep Reinforcement Learning
-"""
 
 def arguments():
-
+    """ Get the IPv4 or CIDR address information of the scope of the assessment """
+    
+    # set up argparse
     parser = argparse.ArgumentParser(
         prog='Phorcys',
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        description=textwrap.dedent(banner)
+        description=textwrap.dedent(utils.banner)
     )
 
     parser.add_argument('target', type=str, help="IP Address (IPv4, IPv6, Domain, CIDR)")
@@ -55,81 +33,76 @@ def arguments():
 
     parser.print_help()
 
-def get_config(ip):
-    config_parser = configparser.ConfigParser()
 
-    config_parser.read('config.ini')
-
-
-    parameters = {
-        'nettacker_ip': config_parser.get('Nettacker', 'ip'),
-        'nettacker_port': int(config_parser.get('Nettacker', 'port')),
-        'nettacker_key': config_parser.get('Nettacker', 'key'),
-        'metasploit_ip': config_parser.get('Metasploit', 'ip'),
-        'metasploit_port': int(config_parser.get('Metasploit', 'port')),
-        'metasploit_password': config_parser.get('Metasploit', 'password'),
-        'target': ip
-    }
-
-    config = Settings(**parameters)
-    return config.get_dict()
-
-def config_tf():
-    tf.get_logger().setLevel('CRITICAL')
-    tf.compat.v1.disable_eager_execution()
-
-
-
-def train_agent(data, nettacker_json):
-
-    env = Environment(nettacker_json, data, actionsToTake=5)
+def train_agent(data, nettacker_json, actions_to_take=5, iterations=5000):
+    """ Used for training RL agent for the gym environment via A2C """
+    
+    env = Environment(nettacker_json, data, actionsToTake=actions_to_take)
 
     # may want to disable log_to_driver less output.
+    # just to make sure ray is cleaned up before re-enabling.
     ray.shutdown()
     
-    #can be security to bind 0.0.0.0 done on purpose to view it.
+    # can be security issue to bind 0.0.0.0 done on purpose to view it.
+    # just doing for the purpose of analysis
+    
     ray.init(dashboard_host='0.0.0.0', ignore_reinit_error=True)
 
+    # register the environment so it is accessible by string name.
     register_env('phorcys', lambda c: env)
 
+
+    # pull default configuration from ray for A2C/A3C
     config = A3C.DEFAULT_CONFIG.copy()
+    
+    
     config['env'] = 'phorcys'
     #config['num_gpus'] = 2
+    
+    # async can do alot of workers
     config['num_workers'] = 2
+    
+    # verbosity of ray tune
     config['log_level'] = 'DEBUG'
+    
+    # write to tensorboard
     config['monitor'] = True # write repsidoe stats to log dir ~/ray_results
-    config['timesteps_per_iteration'] = 50
+    
+    # do this otherwise it WILL result in halting. Time to wait for all the async workers.
     config['min_iter_time_s'] = 0
-    #config['horizon'] = 50
 
 
-    #trainer = A3C.A2CTrainer(env='phorcys', config=config)
-
+    # just use restore to fix it
     tune.run(
-        A3C.A2CTrainer,
-        name="A2C_Phorcys_Training",
-        stop={"timesteps_total": 5000},
+        A3C.A2CTrainer,                          # ray rllib
+        name="A2C_Train",                        # data set to save in ~/ray_results
+        stop={"timesteps_total": iterations},    # when to stop training
         config=config,
-        checkpoint_freq=10,
-        max_failures=5
+        checkpoint_freq=1,                       # save after each iterations
+        max_failures=5,                          # due to high volattily chances of msfrpc going down for a second are high
+                                                 # add this so it doesn't terminate training unless serve error
+        checkpoint_at_end=True                   # add checkpoint once done so can continue training.
     )
 
-    ray.shutdown()
+    ray.shutdown()                           
 
-    
+
 
 if __name__ == '__main__':
 
-    config_tf()
+    
+    # disable tensorflow settings
+    utils.config_tf()
 
     # get scope of assessment
     ip = arguments()
     
     # setup settings
-    data = get_config(ip)
+    data = utils.get_config(ip)
+    
+    utils.print_banner()
 
-    print(banner)
-
+    # TODO: Setup nettacker fully functional with everything else. 
     """
     pp = pprint.PrettyPrinter(indent=4)
     # example
