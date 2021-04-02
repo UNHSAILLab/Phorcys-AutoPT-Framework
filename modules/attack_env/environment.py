@@ -159,8 +159,9 @@ class Environment(Env):
         isTerminal = self._terminal_state(target, isSuccess)
 
         # Temporary Printing Of Step Data
-        # print(f"REWARD: {reward}")
-        # print(f"ISTERMINAL: {isTerminal}")
+        print(f"Exploit: {exploit}")
+        print(f"REWARD: {reward}")
+        print(f"ISTERMINAL: {isTerminal}")
 
         # Returns The Step Back To The Agent
         return updatedObservation, float(reward), isTerminal, {}

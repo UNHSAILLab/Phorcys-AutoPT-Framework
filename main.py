@@ -43,6 +43,9 @@ def arguments():
                         
     parser.add_argument("-a", "--actions_per_target", dest='actions', nargs='?', const=1, type=int,
                         default=5, help="Define training number of actions per host that is allowed. (Default: 5)")
+
+    parser.add_argument("-w", "--workers", dest="workers", nargs='?', const=1, type=int,
+                        default=5, help="Define number of Workers for training.")
   
     parser.add_argument("-l", "--log", dest="logLevel", nargs='?', const=1, type=str, 
                         default='CRITICAL', help="Set the logging level - INFO or DEBUG")
@@ -93,7 +96,8 @@ def train_agent(data, nettacker_json, args):
     #config['num_gpus'] = 2
     
     # async can do alot of workers
-    config['num_workers'] = 2
+    print(f"NUM WORKERS: {args.workers}")
+    config['num_workers'] = args.workers
     
     # verbosity of ray tune
     config['log_level'] = 'DEBUG'
@@ -149,8 +153,6 @@ if __name__ == '__main__':
     
     # get hosts ports
     nettacker_json = scanner.get_port_scan_data(new_scan=args.scan)
-    
-    # pp.pprint(nettacker_json)
 
     try:
         train_agent(data, nettacker_json, args)
