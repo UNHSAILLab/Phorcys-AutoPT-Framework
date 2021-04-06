@@ -62,6 +62,7 @@ class Report:
             self.hosts[host][port].get('output').append(output)
 
     # Function That Gets The States From The Observation And Adds The Relevant Data To The Report
+    # @param {List[StateSpace]} states - A list of all of the states
     def addStateDataToReport(self, states: List[StateSpace]):
 
         # Adds Open Port Data From Each State To The Report

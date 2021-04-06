@@ -11,6 +11,7 @@ from abc import ABC
 from collections import OrderedDict
 from enum import Enum
 from sklearn.preprocessing import OneHotEncoder
+from typing import Dict
 from typing import List
 
 # Enum Class AccessLevel
@@ -377,10 +378,9 @@ class StateParser:
 
     # Function that initializes the class
     # @param {str} fileDirectory - The directory of where the file is stored
-    def __init__(self, fileDirectory: str):
+    def __init__(self, jsonFile: Dict):
 
         # Opens The Json File And Loads The Host Data Into A List
-        jsonFile : TextIO     = open(fileDirectory)
         hostList : List[dict] = json.load(jsonFile)
 
         # A List Of The State Spaces Parsed From The Json File
@@ -458,10 +458,10 @@ class StateParser:
 class ObservationSpace(spaces.Dict, ABC):
 
     # Function that initializes the class
-    def __init__(self):
+    def __init__(self, nettackerJson: Dict):
 
         # Defines The State Space And Initial State Space
-        self._stateSpaces        : List[StateSpace] = StateParser('input.json').stateSpaces
+        self._stateSpaces        : List[StateSpace] = StateParser(nettackerJson).stateSpaces
         self._initialStateSpaces : List[StateSpace] = self._stateSpaces
 
         # Gets The Amount Of Host Address Options To Chose From

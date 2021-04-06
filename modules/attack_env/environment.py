@@ -111,7 +111,7 @@ class Environment(Env):
 
         # Instantiates The Action Space, Observation Space, And Network
         self.action_space      : spaces.Dict      = ActionSpace.getActionSpace()
-        self.observation_space : ObservationSpace = ObservationSpace()
+        self.observation_space : ObservationSpace = ObservationSpace(nettackerJson)
 
         # Variables From Ray Class To Show The Amount Of Steps To Take
         self.spec_max_episode_steps = 30
