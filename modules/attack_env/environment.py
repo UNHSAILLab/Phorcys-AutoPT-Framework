@@ -18,17 +18,14 @@
 
 # for now define predefined value for reward for each exploit
 
-import random
-import pprint
 from collections  import OrderedDict
 from gym          import Env
 from gym          import spaces
-from logging      import Logger, basicConfig, getLogger
 from typing       import Dict
 from .ActionSpace import ActionSpace
 from .metasploit  import MetasploitInterface
-from .Report      import Report
-from .StateSpace  import AccessLevel, ObservationSpace
+from modules.report.Report import Report
+from .StateSpace  import ObservationSpace
 
 class Environment(Env):
 

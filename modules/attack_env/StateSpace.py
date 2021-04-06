@@ -381,7 +381,8 @@ class StateParser:
     def __init__(self, jsonFile: Dict):
 
         # Opens The Json File And Loads The Host Data Into A List
-        hostList : List[dict] = json.load(jsonFile)
+        jsonFile: TextIO = open('../../input.json')
+        hostList: List[dict] = json.load(jsonFile)
 
         # A List Of The State Spaces Parsed From The Json File
         self.stateSpaces: List[StateSpace] = []
