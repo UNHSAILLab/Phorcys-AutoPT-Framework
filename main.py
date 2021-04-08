@@ -12,6 +12,7 @@ import pprint
 import json
 import ray
 import ipaddress
+# import logging
 
 from ray import tune
 import ray.rllib.agents.a3c as A3C
@@ -60,7 +61,6 @@ def arguments():
     if not args.logLevel in ['INFO', 'DEBUG', 'CRITICAL']:
         parser.print_help()
         sys.exit(0)
-
 
     if args.target:
         target = args.target
@@ -146,7 +146,7 @@ def train_agent(data, nettacker_json, report, args):
 if __name__ == '__main__':
 
     # disable tensorflow settings
-    utils.config_tf()
+    # utils.config_tf()
 
     # get scope of assessment
     ip, args = arguments()

@@ -1,6 +1,6 @@
 import configparser
 
-import tensorflow as tf
+# import tensorflow as tf
 import os
 from .settings import Settings
 
@@ -36,8 +36,8 @@ def print_banner():
     print(banner)
     
 
-def config_tf():
-    tf.compat.v1.disable_eager_execution()
+# def config_tf():
+#     tf.compat.v1.disable_eager_execution()
     
     
 def get_config(ip, path):
