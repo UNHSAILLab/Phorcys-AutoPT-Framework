@@ -3,7 +3,6 @@ from typing import Dict
 from typing import List
 from modules.attack_env.StateSpace import AccessLevel
 from modules.attack_env.StateSpace import StateSpace
-from modules.attack_env.StateSpace import ObservationSpace
 
 class Report:
 
@@ -264,23 +263,3 @@ class Report:
             accessLevel.ADMIN_ACCESS : 'Admin level access was obtained'
         }
         return switch[accessLevel]
-
-
-
-
-obv = ObservationSpace([])
-report = Report()
-
-stateOne = obv.getStates()[0]
-stateTwo = obv.getStates()[1]
-
-obv.updateState(stateOne.decodeHostAddress(), AccessLevel.USER_ACCESS, 22, 'exploit/unix/ftp/proftpd_133c_backdoor')
-obv.updateState(stateTwo.decodeHostAddress(), AccessLevel.ADMIN_ACCESS, 135, 'exploit/unix/ftp/proftpd_133c_backdoor')
-
-report.updateReportData(AccessLevel.USER_ACCESS, stateOne.decodeHostAddress(), 22, 'exploit/unix/ftp/proftpd_133c_backdoor', 'sample output 1')
-report.updateReportData(AccessLevel.USER_ACCESS, stateOne.decodeHostAddress(), 22, 'auxiliary/scanner/ssh/ssh_version', 'sample output 2')
-report.updateReportData(AccessLevel.USER_ACCESS, stateOne.decodeHostAddress(), 22, 'exploit/windows/smb/psexec', 'sample output 3')
-report.updateReportData(AccessLevel.ADMIN_ACCESS, stateTwo.decodeHostAddress(), 135, 'exploit/unix/ftp/proftpd_133c_backdoor', 'test output')
-report.addStateDataToReport(obv.getStates())
-
-report.generateReport()

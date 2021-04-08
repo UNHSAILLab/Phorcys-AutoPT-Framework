@@ -377,11 +377,11 @@ class StateSpace:
 class StateParser:
 
     # Function that initializes the class
-    # @param {str} fileDirectory - The directory of where the file is stored
-    def __init__(self, jsonFile: Dict):
+    # @param {Dict} nettackerJson - The nettacker json data stored in a dictionary
+    def __init__(self, nettackerJson: Dict):
 
         # Opens The Json File And Loads The Host Data Into A List
-        jsonFile: TextIO = open('../../input.json')
+        jsonFile: TextIO = open('input.json')
         hostList: List[dict] = json.load(jsonFile)
 
         # A List Of The State Spaces Parsed From The Json File
@@ -508,6 +508,7 @@ class ObservationSpace(spaces.Dict, ABC):
     @staticmethod
     def getAccessLevel(accessLevel: str) -> AccessLevel:
         if   accessLevel == 'root': return AccessLevel.ADMIN_ACCESS
+        elif accessLevel == 'admin': return AccessLevel.ADMIN_ACCESS
         elif accessLevel == 'NT\\AUTHORITY SYSTEM': return AccessLevel.ADMIN_ACCESS
         elif accessLevel == 'USER_ACCESS': return AccessLevel.USER_ACCESS
         else: return AccessLevel.NO_ACCESS
