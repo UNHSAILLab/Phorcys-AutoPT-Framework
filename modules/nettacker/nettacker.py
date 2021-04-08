@@ -95,6 +95,7 @@ class NettackerInterface:
             
             if isinstance(temp_json, dict):
                 if temp_json.get('status') == 'finished': break
+                elif temp_json.get('msg') == 'invalid API key': raise Exception('InvalidAPIKey')
             
             # sometimes duplicates are on multiple pages so need to check if not in list
             for host in temp_json:

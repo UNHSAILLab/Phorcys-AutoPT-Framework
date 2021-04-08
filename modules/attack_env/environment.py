@@ -18,17 +18,14 @@
 
 # for now define predefined value for reward for each exploit
 
-import random
-import pprint
 from collections  import OrderedDict
 from gym          import Env
 from gym          import spaces
-from logging      import Logger, basicConfig, getLogger
 from typing       import Dict
 from .ActionSpace import ActionSpace
 from .metasploit  import MetasploitInterface
-from .Report      import Report
-from .StateSpace  import AccessLevel, ObservationSpace
+from modules.report.Report import Report
+from .StateSpace  import ObservationSpace
 
 class Environment(Env):
 
@@ -72,22 +69,22 @@ class Environment(Env):
         },
         'auxiliary/scanner/ssh/ssh_login': {
             'cost'    : 2,
-            'success' : 10
+            'success' : 15
         },
         'exploit/unix/ftp/proftpd_133c_backdoor': {
             'cost'    : 5,
-            'success' : 20
+            'success' : 15
         },
         'exploit/windows/rdp/cve_2019_0708_bluekeep_rce': {
-            'cost'    : 11,
+            'cost'    : 8,
             'success' : 25
         },
         'exploit/windows/smb/ms17_010_eternalblue': {
-            'cost'    : 15,
+            'cost'    : 8,
             'success' : 25
         },
         'exploit/windows/smb/psexec': {
-            'cost'    : 10,
+            'cost'    : 8,
             'success' : 20
         }
     }
@@ -97,6 +94,7 @@ class Environment(Env):
             self,
             nettackerJson    : Dict,
             metasploitConfig : Dict,
+            report           : Report,
             actionsToTake    : int  = 20,
             logLevel         : str  = 'ERROR'
     ):
@@ -106,15 +104,12 @@ class Environment(Env):
         self.actions_to_take: int = actionsToTake
         self.terminal_dict: Dict[str, int] = {}
 
-        # Instantiates The Reporting Class For Keeping Track Of Data To Show The User
-        self.report = Report()
+        # Sets The Report
+        self.report = report
 
         # Instantiates The Action Space, Observation Space, And Network
         self.action_space      : spaces.Dict      = ActionSpace.getActionSpace()
-        self.observation_space : ObservationSpace = ObservationSpace()
-
-        # Variables From Ray Class To Show The Amount Of Steps To Take
-        self.spec_max_episode_steps = 30
+        self.observation_space : ObservationSpace = ObservationSpace(nettackerJson)
 
         # Configures The Metasploit API
         self._metasploitAPI = MetasploitInterface(
@@ -159,8 +154,10 @@ class Environment(Env):
         isTerminal = self._terminal_state(target, isSuccess)
 
         # Temporary Printing Of Step Data
-        # print(f"REWARD: {reward}")
-        # print(f"ISTERMINAL: {isTerminal}")
+        print(f"Exploit: {exploit}")
+        print(f"AccessLevel: {accessLevel}")
+        print(f"REWARD: {reward}")
+        print(f"ISTERMINAL: {isTerminal}")
 
         # Returns The Step Back To The Agent
         return updatedObservation, float(reward), isTerminal, {}

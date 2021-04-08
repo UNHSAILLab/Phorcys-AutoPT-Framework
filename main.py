@@ -1,13 +1,15 @@
-#Dealing with arguments
+# Dealing with arguments
 # see tensorboard.sh
 # python3 main.py 192.168.1.100,192.168.1.200,192.168.1.201,192.168.1.183,192.168.1.231,192.168.1.79,192.168.1.115
+
 import os, sys
-import tensorflow as tf
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' # remove warnings for normal runs.
 
+import tensorflow as tf
 import argparse
 import textwrap
 import pprint
+import json
 import ray
 import ipaddress
 # import logging
@@ -16,16 +18,16 @@ from ray import tune
 import ray.rllib.agents.a3c as A3C
 from ray.tune.registry import register_env
 
-
 import modules.utils as utils
 from modules.attack_env import Environment
 from modules.nettacker import NettackerInterface
 from modules.attack_env.metasploit import MetasploitInterface
+from modules.report.Report import Report
 
 
 def arguments():
     """ Get the IPv4 or CIDR address information of the scope of the assessment """
-    
+
     # set up argparse
     parser = argparse.ArgumentParser(
         prog='Phorcys',
@@ -34,51 +36,65 @@ def arguments():
     )
 
     parser.add_argument('target', type=str, help="Scope of the Penetration Test (IPv4 Address or CIDR Notation)")
-    parser.add_argument("-s", "--new_scan", dest='scan', action='store_true', 
+    parser.add_argument("-s", "--new_scan", dest='scan', action='store_true',
                         help="Scan with OWASPNettacker or use pre-existing data scan data")
     parser.add_argument("-m", "--mute_banner", dest='banner', action='store_false',
                         help="Hide amazing phorcys banner")
 
+    parser.add_argument('-j', "--json_file", dest='json', type=str, nargs='?', const=1, 
+                        default='', help="use json file instead of nettacker data.")
+
     parser.add_argument("-i", "--iterations", dest='iterations', nargs='?', const=1, type=int,
                         default=1000, help="Define number of training iterations for RL agent (Default: 1000)")
-                        
+
     parser.add_argument("-a", "--actions_per_target", dest='actions', nargs='?', const=1, type=int,
                         default=5, help="Define training number of actions per host that is allowed. (Default: 5)")
+
+    parser.add_argument("-w", "--workers", dest="workers", nargs='?', const=1, type=int,
+                        default=0, help="Define number of Workers for training.")
   
     parser.add_argument("-l", "--log", dest="logLevel", nargs='?', const=1, type=str, 
                         default='CRITICAL', help="Set the logging level - INFO or DEBUG")
-                        
+
     args = parser.parse_args()
 
     if not args.logLevel in ['INFO', 'DEBUG', 'CRITICAL']:
         parser.print_help()
         sys.exit(0)
-        
+
     if args.target:
         target = args.target
-        
+
         if '/' in args.target:
            result = [str(ip) for ip in ipaddress.IPv4Network(target, False)]
            target = ','.join(result)
-        
+
         return target, args
 
     parser.print_help()
-    
+
     return None, None
 
-def train_agent(data, nettacker_json, args):
+def train_agent(data, nettacker_json, report, args):
     """ Used for training RL agent for the gym environment via A2C """
-    
-    env = Environment(nettacker_json, data, actionsToTake=args.actions, logLevel=args.logLevel)
+
+    env = Environment(nettacker_json, data, report, actionsToTake=args.actions, logLevel=args.logLevel)
+
+    # print(env.step({'target'  : 1, 'port'    : 2,  'exploit' : 3}))
+
+    # states = env.observation_space.getStates()
+
+    # report.addStateDataToReport(states)
+
+    # return
 
     # may want to disable log_to_driver less output.
     # just to make sure ray is cleaned up before re-enabling.
     ray.shutdown()
-    
+
     # can be security issue to bind 0.0.0.0 done on purpose to view it.
     # just doing for the purpose of analysis
-    
+
     ray.init(dashboard_host='0.0.0.0', ignore_reinit_error=True)
 
     # register the environment so it is accessible by string name.
@@ -86,80 +102,97 @@ def train_agent(data, nettacker_json, args):
 
 
     # pull default configuration from ray for A2C/A3C
-    config = A3C.DEFAULT_CONFIG.copy()
+    config = A3C.a2c.A2C_DEFAULT_CONFIG.copy()
     
     
     config['env'] = 'phorcys'
     #config['num_gpus'] = 2
-    
+
     # async can do alot of workers
-    config['num_workers'] = 2
-    
+    print(f"NUM WORKERS: {args.workers}")
+    config['num_workers'] = args.workers
+
     # verbosity of ray tune
-    config['log_level'] = 'DEBUG'
+    # config['log_level'] = 'DEBUG'
     
-    # write to tensorboard
+    # write to tensorboardW
     config['monitor'] = True # write repsidoe stats to log dir ~/ray_results
-    
+
     # do this otherwise it WILL result in halting. Time to wait for all the async workers.
-    config['min_iter_time_s'] = 0
+    config['min_iter_time_s'] = 5
+    config['train_batch_size'] = 32
+    config['rollout_fragment_length'] = 5
 
 
     # just use restore to fix it
     tune.run(
-        A3C.A2CTrainer,                          # ray rllib
-        name="A2C_Train",                        # data set to save in ~/ray_results
-        stop={"timesteps_total": args.iterations},    # when to stop training
+        A3C.A2CTrainer,                         # ray rllib                        # data set to save in ~/ray_results
+        stop={"training_iteration": args.iterations},    # when to stop training
         config=config,
-        checkpoint_freq=1,                       # save after each iterations
-        max_failures=5,                          # due to high volattily chances of msfrpc going down for a second are high
+        checkpoint_freq=15,                       # save after each iterations
+        max_failures=15,                          # due to high volattily chances of msfrpc going down for a second are high
                                                  # add this so it doesn't terminate training unless serve error
         checkpoint_at_end=True                   # add checkpoint once done so can continue training.
     )
 
-    ray.shutdown()                           
+    ray.shutdown()
 
+    # setup report information
+    states = env.observation_space.getStates()
+
+    report.addStateDataToReport(states)
 
 
 if __name__ == '__main__':
 
-     
     # disable tensorflow settings
     # utils.config_tf()
 
     # get scope of assessment
     ip, args = arguments()
 
+    dir_path = os.path.dirname(os.path.realpath(__file__))
     # setup settings
-    data = utils.get_config(ip)
-    loglevel = args.logLevel
+    data = utils.get_config(ip, dir_path)
+
     if args.banner:
         utils.print_banner()
 
-    # metasploit = MetasploitInterface(data.get('metasploit_ip'), data.get('metasploit_port'), data.get('metasploit_password'), loglevel)
-
-
-    # success, user_level, exploit = metasploit.run(data.get('target'), 'exploit/unix/ftp/proftpd_133c_backdoor', 21)
-    # success, user_level, exploit = metasploit.run(data.get('target'), 'exploit/windows/smb/ms17_010_eternalblue', 445)
     pp = pprint.PrettyPrinter(indent=4)
     scanner = NettackerInterface(**data)
-     
-    # create a new scan if flagged.
-    if args.scan: 
-        print('Creating Nettacker scan with targets provided.')
-        
-        results = scanner.new_scan()
-        pp.pprint(results)
 
-    # if args.logLevel:
-    #     logging.basicConfig(level=args.logLevel)
-    
-    # get hosts ports
-    nettacker_json = scanner.get_port_scan_data(new_scan=args.scan)
-    
-    # pp.pprint(nettacker_json)
+    # create a new scan if flagged.
+    nettacker_json = None
+
+    # check if to use from json
+    if args.json == '':
+        
+        # create new scan
+        if args.scan: 
+            print('Creating Nettacker scan with targets provided.')
+            
+            results = scanner.new_scan()
+            pp.pprint(results)
+        
+        nettacker_json = scanner.get_port_scan_data(new_scan=args.scan)
+
+        # write to file for future usage
+        with open('temp.json', 'w') as json_file:
+            json.dump(nettacker_json, json_file, indent=4)
+
+    else:
+        # using json file.
+        print(f"Using Json file: {args.json}")
+        with open(args.json) as json_file:
+            nettacker_json = json.load(json_file)
 
     try:
-        train_agent(data, nettacker_json, args)
+        # Instantiates The Report Class
+        report: Report = Report()
+        train_agent(data, nettacker_json, report, args)
+
+        image = f"{dir_path}/images/phorcys_cropped.png"
+
+        report.generateReport(image)
     except KeyboardInterrupt:
         ray.shutdown()
