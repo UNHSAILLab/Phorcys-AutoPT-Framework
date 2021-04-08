@@ -54,7 +54,6 @@ def arguments():
         parser.print_help()
         sys.exit(0)
         
-        
     if args.target:
         target = args.target
         
@@ -126,18 +125,22 @@ if __name__ == '__main__':
 
      
     # disable tensorflow settings
-    utils.config_tf()
+    # utils.config_tf()
 
     # get scope of assessment
     ip, args = arguments()
 
     # setup settings
     data = utils.get_config(ip)
-    
+    loglevel = args.logLevel
     if args.banner:
         utils.print_banner()
 
-    
+    # metasploit = MetasploitInterface(data.get('metasploit_ip'), data.get('metasploit_port'), data.get('metasploit_password'), loglevel)
+
+
+    # success, user_level, exploit = metasploit.run(data.get('target'), 'exploit/unix/ftp/proftpd_133c_backdoor', 21)
+    # success, user_level, exploit = metasploit.run(data.get('target'), 'exploit/windows/smb/ms17_010_eternalblue', 445)
     pp = pprint.PrettyPrinter(indent=4)
     scanner = NettackerInterface(**data)
      

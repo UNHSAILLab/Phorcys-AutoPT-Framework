@@ -88,13 +88,13 @@ tabulate==0.8.9
 tensorboard==1.15.0
 tensorboardX==2.1
 tensorflow-estimator==1.15.1
-tensorflow-gpu==1.15.0
+# tensorflow-gpu==1.15.0
 termcolor==1.1.0
 threadpoolctl==2.1.0
 torch==1.8.1
 typing-extensions==3.7.4.3
 urllib3==1.26.3
-webencodings==0.5.1
+webencodings==0.5.1pyt
 Werkzeug==1.0.1
 wrapt==1.12.1
 yarl==1.6.3

