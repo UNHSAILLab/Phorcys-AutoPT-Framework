@@ -523,7 +523,7 @@ class ObservationSpace(spaces.Dict, ABC):
     def getAccessLevel(accessLevel: str) -> AccessLevel:
         if   accessLevel == 'root': return AccessLevel.ADMIN_ACCESS
         elif accessLevel == 'admin': return AccessLevel.ADMIN_ACCESS
-        elif accessLevel == 'NT\\AUTHORITY SYSTEM': return AccessLevel.ADMIN_ACCESS
+        elif accessLevel == 'NT AUTHORITY\\SYSTEM': return AccessLevel.ADMIN_ACCESS
         elif accessLevel == 'USER_ACCESS': return AccessLevel.USER_ACCESS
         else: return AccessLevel.NO_ACCESS
 
