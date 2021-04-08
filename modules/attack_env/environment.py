@@ -18,17 +18,14 @@
 
 # for now define predefined value for reward for each exploit
 
-import random
-import pprint
 from collections  import OrderedDict
 from gym          import Env
 from gym          import spaces
-from logging      import Logger, basicConfig, getLogger
 from typing       import Dict
 from .ActionSpace import ActionSpace
 from .metasploit  import MetasploitInterface
-from .Report      import Report
-from .StateSpace  import AccessLevel, ObservationSpace
+from modules.report.Report import Report
+from .StateSpace  import ObservationSpace
 
 class Environment(Env):
 
@@ -97,6 +94,7 @@ class Environment(Env):
             self,
             nettackerJson    : Dict,
             metasploitConfig : Dict,
+            report           : Report,
             actionsToTake    : int  = 20,
             logLevel         : str  = 'ERROR'
     ):
@@ -106,12 +104,12 @@ class Environment(Env):
         self.actions_to_take: int = actionsToTake
         self.terminal_dict: Dict[str, int] = {}
 
-        # Instantiates The Reporting Class For Keeping Track Of Data To Show The User
-        self.report = Report()
+        # Sets The Report
+        self.report = report
 
         # Instantiates The Action Space, Observation Space, And Network
         self.action_space      : spaces.Dict      = ActionSpace.getActionSpace()
-        self.observation_space : ObservationSpace = ObservationSpace()
+        self.observation_space : ObservationSpace = ObservationSpace(nettackerJson)
 
         # Configures The Metasploit API
         self._metasploitAPI = MetasploitInterface(
