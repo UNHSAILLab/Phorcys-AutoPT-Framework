@@ -22,6 +22,7 @@ from collections  import OrderedDict
 from gym          import Env
 from gym          import spaces
 from typing       import Dict
+from typing       import List 
 from .ActionSpace import ActionSpace
 from .metasploit  import MetasploitInterface
 from modules.report.Report import Report
@@ -156,6 +157,7 @@ class Environment(Env):
                 - Terminal state
                 - no info 
         """
+        print(action)
 
         # Gets The Data From The Action That The Agent Has Taken
         updatedObservation, accessLevel, target, port, exploit, output, isSuccess = self._take_action(action)
@@ -165,7 +167,7 @@ class Environment(Env):
         
         # print(self.terminal_dict)
         # # check if one host is in terminal
-        # if not isTerminal:
+        # if not isTerminal:a
         #     if output == self.HOST_MAX_ACTIONS_OUTPUT:
         #         print(f"MAX OUTPUT REACHED: {target}")
         #         return updatedObservation, float(0), False, {}
@@ -181,6 +183,7 @@ class Environment(Env):
         print(f"Exploit: {exploit}")
         print(f"AccessLevel: {accessLevel}")
         print(f"REWARD: {reward}")
+        print(f"ACTIONSPACE: {self.action_space}")
         print(f"ISTERMINAL: {isTerminal}")
         print("-"*15)
 
@@ -207,7 +210,7 @@ class Environment(Env):
     def _take_action(self, action):
 
         # Parses The Actions From Their Discrete Values
-        target, port, exploit = self.action_space_instance.getActions(action)
+        exploit, port, target = self.action_space_instance.getActions(action)
 
         # if self._check_host_terminal(target):
         #     observation = self.observation_space.getObservation(target)
@@ -248,6 +251,7 @@ class Environment(Env):
             if self.terminal_dict[host] >= self.actions_to_take:
                 hosts_terminal.append(True)
                 self.action_space: spaces.Dict = self.action_space_instance.updateActionSpace(host)
+                print('action space updated')
             else:
                 hosts_terminal.append(False)
 
