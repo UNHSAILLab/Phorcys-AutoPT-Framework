@@ -8,6 +8,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' # remove warnings for normal runs.
 import argparse
 import textwrap
 import pprint
+import json
 import ray
 import ipaddress
 
@@ -38,6 +39,9 @@ def arguments():
     parser.add_argument("-m", "--mute_banner", dest='banner', action='store_false',
                         help="Hide amazing phorcys banner")
 
+    parser.add_argument('-j', "--json_file", dest='json', type=str, nargs='?', const=1, 
+                        default='', help="use json file instead of nettacker data.")
+
     parser.add_argument("-i", "--iterations", dest='iterations', nargs='?', const=1, type=int,
                         default=1000, help="Define number of training iterations for RL agent (Default: 1000)")
                         
@@ -45,7 +49,7 @@ def arguments():
                         default=5, help="Define training number of actions per host that is allowed. (Default: 5)")
 
     parser.add_argument("-w", "--workers", dest="workers", nargs='?', const=1, type=int,
-                        default=5, help="Define number of Workers for training.")
+                        default=0, help="Define number of Workers for training.")
   
     parser.add_argument("-l", "--log", dest="logLevel", nargs='?', const=1, type=str, 
                         default='CRITICAL', help="Set the logging level - INFO or DEBUG")
@@ -89,7 +93,7 @@ def train_agent(data, nettacker_json, args):
 
 
     # pull default configuration from ray for A2C/A3C
-    config = A3C.DEFAULT_CONFIG.copy()
+    config = A3C.a2c.A2C_DEFAULT_CONFIG.copy()
     
     
     config['env'] = 'phorcys'
@@ -100,23 +104,24 @@ def train_agent(data, nettacker_json, args):
     config['num_workers'] = args.workers
     
     # verbosity of ray tune
-    config['log_level'] = 'DEBUG'
+    # config['log_level'] = 'DEBUG'
     
-    # write to tensorboard
+    # write to tensorboardW
     config['monitor'] = True # write repsidoe stats to log dir ~/ray_results
     
     # do this otherwise it WILL result in halting. Time to wait for all the async workers.
-    config['min_iter_time_s'] = 2
+    config['min_iter_time_s'] = 5
+    config['train_batch_size'] = 32
+    config['rollout_fragment_length'] = 5
 
 
     # just use restore to fix it
     tune.run(
-        A3C.A2CTrainer,                          # ray rllib
-        name="A2C_Train",                        # data set to save in ~/ray_results
-        stop={"timesteps_total": args.iterations},    # when to stop training
+        A3C.A2CTrainer,                         # ray rllib                        # data set to save in ~/ray_results
+        stop={"training_iteration": args.iterations},    # when to stop training
         config=config,
         checkpoint_freq=15,                       # save after each iterations
-        max_failures=5,                          # due to high volattily chances of msfrpc going down for a second are high
+        max_failures=15,                          # due to high volattily chances of msfrpc going down for a second are high
                                                  # add this so it doesn't terminate training unless serve error
         checkpoint_at_end=True                   # add checkpoint once done so can continue training.
     )
@@ -145,14 +150,29 @@ if __name__ == '__main__':
     scanner = NettackerInterface(**data)
      
     # create a new scan if flagged.
-    if args.scan: 
-        print('Creating Nettacker scan with targets provided.')
+    nettacker_json = None
+
+    # check if to use from json
+    if args.json == '':
         
-        results = scanner.new_scan()
-        pp.pprint(results)
-    
-    # get hosts ports
-    nettacker_json = scanner.get_port_scan_data(new_scan=args.scan)
+        # create new scan
+        if args.scan: 
+            print('Creating Nettacker scan with targets provided.')
+            
+            results = scanner.new_scan()
+            pp.pprint(results)
+        
+        nettacker_json = scanner.get_port_scan_data(new_scan=args.scan)
+
+        # write to file for future usage
+        with open('temp.json', 'w') as json_file:
+            json.dump(nettacker_json, json_file, indent=4)
+
+    else:
+        # using json file.
+        print(f"Using Json file: {args.json}")
+        with open(args.json) as json_file:
+            nettacker_json = json.load(json_file)
 
     try:
         train_agent(data, nettacker_json, args)

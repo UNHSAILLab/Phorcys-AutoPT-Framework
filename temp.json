@@ -1,0 +1,128 @@
+[
+    {
+        "host": "192.168.1.183",
+        "info": {
+            "category": [
+                "scan"
+            ],
+            "descriptions": [
+                "49167/TCP_CONNECT",
+                "49154/TCP_CONNECT",
+                "49153/TCP_CONNECT",
+                "49152/TCP_CONNECT",
+                "135/epmap/TCP_CONNECT",
+                "3389/TCP_CONNECT",
+                "5357/http/TCP_CONNECT",
+                "22/ssh/TCP_CONNECT",
+                "139/netbios-ssn/TCP_CONNECT",
+                "445/microsoft-ds/TCP_CONNECT"
+            ],
+            "open_ports": [],
+            "scan_methods": [
+                "port_scan"
+            ]
+        }
+    },
+    {
+        "host": "192.168.1.115",
+        "info": {
+            "category": [
+                "scan"
+            ],
+            "descriptions": [
+                "21/ftp/TCP_CONNECT",
+                "80/http/TCP_CONNECT",
+                "22/ssh/TCP_CONNECT"
+            ],
+            "open_ports": [],
+            "scan_methods": [
+                "port_scan"
+            ]
+        }
+    },
+    {
+        "host": "192.168.1.79",
+        "info": {
+            "category": [
+                "scan"
+            ],
+            "descriptions": [
+                "21/ftp/TCP_CONNECT",
+                "22/ssh/TCP_CONNECT"
+            ],
+            "open_ports": [],
+            "scan_methods": [
+                "port_scan"
+            ]
+        }
+    },
+    {
+        "host": "192.168.1.201",
+        "info": {
+            "category": [
+                "scan"
+            ],
+            "descriptions": [
+                "49156/TCP_CONNECT",
+                "49154/TCP_CONNECT",
+                "3389/TCP_CONNECT",
+                "135/epmap/TCP_CONNECT",
+                "445/microsoft-ds/TCP_CONNECT",
+                "139/netbios-ssn/TCP_CONNECT"
+            ],
+            "open_ports": [],
+            "scan_methods": [
+                "port_scan"
+            ]
+        }
+    },
+    {
+        "host": "192.168.1.200",
+        "info": {
+            "category": [
+                "scan"
+            ],
+            "descriptions": [
+                "22/ssh/TCP_CONNECT",
+                "111/sunrpc/TCP_CONNECT"
+            ],
+            "open_ports": [],
+            "scan_methods": [
+                "port_scan"
+            ]
+        }
+    },
+    {
+        "host": "192.168.1.100",
+        "info": {
+            "category": [
+                "scan"
+            ],
+            "descriptions": [
+                "49153/TCP_CONNECT",
+                "49159/TCP_CONNECT",
+                "49158/TCP_CONNECT",
+                "49154/TCP_CONNECT",
+                "49152/TCP_CONNECT",
+                "49155/TCP_CONNECT",
+                "135/epmap/TCP_CONNECT",
+                "53/domain/TCP_CONNECT",
+                "49157/TCP_CONNECT",
+                "3389/TCP_CONNECT",
+                "593/TCP_CONNECT",
+                "3268/TCP_CONNECT",
+                "445/microsoft-ds/TCP_CONNECT",
+                "464/kpasswd/TCP_CONNECT",
+                "389/ldap/TCP_CONNECT",
+                "139/netbios-ssn/TCP_CONNECT",
+                "88/kerberos/TCP_CONNECT",
+                "3269/TCP_CONNECT",
+                "636/ldaps/TCP_CONNECT"
+            ],
+            "open_ports": [],
+            "scan_methods": [
+                "port_scan"
+            ]
+        }
+    }
+]
