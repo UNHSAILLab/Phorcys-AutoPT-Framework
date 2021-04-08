@@ -96,12 +96,6 @@ class Settings(metaclass=Singleton):
 
         return self.target
 
-    def get_verbosity(self) -> str:
-        """ This Returns the verbosity level
-            :param self - This tells the program to access the verbosity level initialized in the instance parameters
-            :return self.verbosity - Returns the verbosity level.
-        """
-        return self.verbosity
 
     def get_dict(self) -> dict:
         """ This creates a dictionary for all the necessary settings
