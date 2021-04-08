@@ -22,11 +22,7 @@ from collections  import OrderedDict
 from gym          import Env
 from gym          import spaces
 from typing       import Dict
-<<<<<<< HEAD
 from typing       import List 
-=======
-from typing       import List
->>>>>>> 73f579c6b7e72208b1765f6ca2f8aa60ed399854
 from .ActionSpace import ActionSpace
 from .metasploit  import MetasploitInterface
 from modules.report.Report import Report
@@ -166,22 +162,12 @@ class Environment(Env):
         
         # Gets Whether The Terminal State Has Been Triggered
         isTerminal = self._terminal_state(target, isSuccess)
-<<<<<<< HEAD
-        
-        # print(self.terminal_dict)
-        # # check if one host is in terminal
-        # if not isTerminal:a
-        #     if output == self.HOST_MAX_ACTIONS_OUTPUT:
-        #         print(f"MAX OUTPUT REACHED: {target}")
-        #         return updatedObservation, float(0), False, {}
-=======
 
         # Checks Whether The Chosen Target Has No Actions Left To tTake
         if not isTerminal:
             if output == self.HOST_MAX_ACTIONS_OUTPUT:
                 print(f"MAX OUTPUT REACHED: {target}")
                 return updatedObservation, float(0), False, {}
->>>>>>> 73f579c6b7e72208b1765f6ca2f8aa60ed399854
 
         # When An Exploit Was Successful Update The Report Data
         if isSuccess: self.report.updateReportData(accessLevel, target, port, exploit, output)
@@ -263,11 +249,6 @@ class Environment(Env):
         for host in self.terminal_dict:
             if self.terminal_dict[host] >= self.actions_to_take:
                 hosts_terminal.append(True)
-<<<<<<< HEAD
-                self.action_space: spaces.Dict = self.action_space_instance.updateActionSpace(host)
-                print('action space updated')
-=======
->>>>>>> 73f579c6b7e72208b1765f6ca2f8aa60ed399854
             else:
                 hosts_terminal.append(False)
 
