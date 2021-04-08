@@ -50,15 +50,9 @@ def arguments():
                         default=5, help="Define training number of actions per host that is allowed. (Default: 5)")
 
     parser.add_argument("-w", "--workers", dest="workers", nargs='?', const=1, type=int,
-<<<<<<< HEAD
                         default=0, help="Define number of Workers for training.")
   
     parser.add_argument("-l", "--log", dest="logLevel", nargs='?', const=1, type=str, 
-=======
-                        default=5, help="Define number of Workers for training.")
-
-    parser.add_argument("-l", "--log", dest="logLevel", nargs='?', const=1, type=str,
->>>>>>> 679e379ad70c15a00315bb562cbe651bfdfd4ee2
                         default='CRITICAL', help="Set the logging level - INFO or DEBUG")
 
     args = parser.parse_args()
@@ -86,6 +80,14 @@ def train_agent(data, nettacker_json, report, args):
 
     env = Environment(nettacker_json, data, report, actionsToTake=args.actions, logLevel=args.logLevel)
 
+    # print(env.step({'target'  : 1, 'port'    : 2,  'exploit' : 3}))
+
+    # states = env.observation_space.getStates()
+
+    # report.addStateDataToReport(states)
+
+    # return
+
     # may want to disable log_to_driver less output.
     # just to make sure ray is cleaned up before re-enabling.
     ray.shutdown()
@@ -100,15 +102,9 @@ def train_agent(data, nettacker_json, report, args):
 
 
     # pull default configuration from ray for A2C/A3C
-<<<<<<< HEAD
     config = A3C.a2c.A2C_DEFAULT_CONFIG.copy()
     
     
-=======
-    config = A3C.DEFAULT_CONFIG.copy()
-
-
->>>>>>> 679e379ad70c15a00315bb562cbe651bfdfd4ee2
     config['env'] = 'phorcys'
     #config['num_gpus'] = 2
 
@@ -117,15 +113,9 @@ def train_agent(data, nettacker_json, report, args):
     config['num_workers'] = args.workers
 
     # verbosity of ray tune
-<<<<<<< HEAD
     # config['log_level'] = 'DEBUG'
     
     # write to tensorboardW
-=======
-    config['log_level'] = 'DEBUG'
-
-    # write to tensorboard
->>>>>>> 679e379ad70c15a00315bb562cbe651bfdfd4ee2
     config['monitor'] = True # write repsidoe stats to log dir ~/ray_results
 
     # do this otherwise it WILL result in halting. Time to wait for all the async workers.
@@ -147,6 +137,10 @@ def train_agent(data, nettacker_json, report, args):
 
     ray.shutdown()
 
+    # setup report information
+    states = env.observation_space.getStates()
+
+    report.addStateDataToReport(states)
 
 
 if __name__ == '__main__':
@@ -157,11 +151,9 @@ if __name__ == '__main__':
     # get scope of assessment
     ip, args = arguments()
 
+    dir_path = os.path.dirname(os.path.realpath(__file__))
     # setup settings
-    data = utils.get_config(ip)
-
-    # Instantiates The Report Class
-    report: Report = Report()
+    data = utils.get_config(ip, dir_path)
 
     if args.banner:
         utils.print_banner()
@@ -170,7 +162,6 @@ if __name__ == '__main__':
     scanner = NettackerInterface(**data)
 
     # create a new scan if flagged.
-<<<<<<< HEAD
     nettacker_json = None
 
     # check if to use from json
@@ -194,19 +185,14 @@ if __name__ == '__main__':
         print(f"Using Json file: {args.json}")
         with open(args.json) as json_file:
             nettacker_json = json.load(json_file)
-=======
-    if args.scan:
-        print('Creating Nettacker scan with targets provided.')
-
-        results = scanner.new_scan()
-        pp.pprint(results)
-
-    # get hosts ports
-    nettacker_json = scanner.get_port_scan_data(new_scan=args.scan)
->>>>>>> 679e379ad70c15a00315bb562cbe651bfdfd4ee2
 
     try:
+        # Instantiates The Report Class
+        report: Report = Report()
         train_agent(data, nettacker_json, report, args)
-        report.generateReport()
+
+        image = f"{dir_path}/images/phorcys_cropped.png"
+
+        report.generateReport(image)
     except KeyboardInterrupt:
         ray.shutdown()

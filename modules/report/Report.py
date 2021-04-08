@@ -95,13 +95,13 @@ class Report:
 
     # Function That Generates The Report
     # Report Is Generated using html
-    def generateReport(self):
+    def generateReport(self, image):
 
         # Opens The Report File
         report = open("report.html", "w")
 
         # Shows The Header And Phorcys Image
-        report.write("""<!DOCTYPE html>
+        report.write(f"""<!DOCTYPE html>
     <html lang="en">
     
         <!-- Head Metadata -->
@@ -115,7 +115,7 @@ class Report:
 
             <!--  Logo And Intro Info  -->
             <div>   
-                <img src="../../images/phorcys_cropped.png" alt="" style="max-height: 20rem; display: block; margin: 0 auto">
+                <img src="{image}" alt="" style="max-height: 20rem; display: block; margin: 0 auto">
             </div>
     """)
 
