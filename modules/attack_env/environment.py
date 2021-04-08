@@ -29,6 +29,8 @@ from .StateSpace  import ObservationSpace
 
 class Environment(Env):
 
+    HOST_MAX_ACTIONS_OUTPUT = 'MAX_TERMINAL'
+
     # Defines The Cost And Success Reward Values For Each Exploit
     reward_mapping: Dict[str, Dict[str, int]] = {
         'auxiliary/scanner/ftp/ftp_version': {
@@ -128,7 +130,14 @@ class Environment(Env):
 
     # Resets The State Of The Environment
     def reset(self) -> OrderedDict:
+
         self.terminal_dict = {}
+        
+        for state in self.observation_space.getStates():
+            host_address = state.decodeHostAddress()
+            self.terminal_dict[host_address] = 0
+        
+        print(f'New Terminal DICT: {self.terminal_dict}')
         return self.observation_space.getInitialObvState()
 
     # Selects An Action To Take
@@ -143,6 +152,16 @@ class Environment(Env):
 
         # Gets The Data From The Action That The Agent Has Taken
         updatedObservation, accessLevel, target, port, exploit, output, isSuccess = self._take_action(action)
+        
+        # Gets Whether The Terminal State Has Been Triggered
+        isTerminal = self._terminal_state(target, isSuccess)
+        
+        print(self.terminal_dict)
+        # check if one host is in terminal
+        if not isTerminal:
+            if output == self.HOST_MAX_ACTIONS_OUTPUT:
+                print(f"MAX OUTPUT REACHED: {target}")
+                return updatedObservation, float(0), False, {}
 
         # When An Exploit Was Successful Update The Report Data
         if isSuccess: self.report.updateReportData(accessLevel, target, port, exploit, output)
@@ -150,14 +169,13 @@ class Environment(Env):
         # Gets The Reward Based On The Used Exploit And Its Success
         reward = self._get_reward(exploit, isSuccess)
 
-        # Gets Whether The Terminal State Has Been Triggered
-        isTerminal = self._terminal_state(target, isSuccess)
-
         # Temporary Printing Of Step Data
+        print("-"*15)
         print(f"Exploit: {exploit}")
         print(f"AccessLevel: {accessLevel}")
         print(f"REWARD: {reward}")
         print(f"ISTERMINAL: {isTerminal}")
+        print("-"*15)
 
         # Returns The Step Back To The Agent
         return updatedObservation, float(reward), isTerminal, {}
@@ -187,6 +205,13 @@ class Environment(Env):
         port    = actions.getPort()
         exploit = actions.getExploit()
 
+        if self._check_host_terminal(target):
+            observation = self.observation_space.getObservation(target)
+            accessLevel = self.observation_space.getAccessLevel('')
+
+            return observation, accessLevel, target, port, exploit, self.HOST_MAX_ACTIONS_OUTPUT, False
+
+
         # Runs The Exploit Chosen By The Agent And
         isSuccess, accessLevel, output = self._metasploitAPI.run(target=target, exploit=exploit, port=port)
 
@@ -202,9 +227,6 @@ class Environment(Env):
     # Checks Whether The Agent Has Triggered The Terminal State
     def _terminal_state(self, target, isSuccess):
 
-        # Sets The Default Amount Of Actions When The Target Does Not Exist
-        self.terminal_dict.setdefault(target, 0)
-
         # When The Action Was Successful
         if isSuccess:
 
@@ -216,9 +238,32 @@ class Environment(Env):
         self.terminal_dict[target] = self.terminal_dict[target] + 1
 
         # When The Max Amount Of Actions Were Taken, Terminate
-        if self.terminal_dict[target] >= self.actions_to_take:
-            print("TERMINATED!!!!!!!!!!!!!!!!!!!")
+
+        hosts_terminal = []
+
+        # create temp list to see if all hosts hit the max actions
+        for host in self.terminal_dict:
+
+            if self.terminal_dict[host] >= self.actions_to_take:
+                hosts_terminal.append(True)
+            else:
+                hosts_terminal.append(False)
+                # this host is done 
+
+        # check host_teriminals if all are true
+        print(hosts_terminal)
+        for isTerminal in hosts_terminal:
+            if isTerminal == False: return False
+        
+        return True
+
+
+    def _check_host_terminal(self, target):
+
+        # if host is in terminal
+        if self.terminal_dict.get(target, 0) >= self.actions_to_take:
             return True
 
-        # Continue Taking Actions
         return False
+
+
