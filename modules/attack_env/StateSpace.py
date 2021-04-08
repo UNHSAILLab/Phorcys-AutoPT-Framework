@@ -95,14 +95,17 @@ class StateSpace:
         hostAddressOptions : List[List[str]] = None,
         hostAddress        : str             = ''
     ):
-        self.hostAddressOptions = hostAddressOptions
+
+        # Sets The Class Variables
+        self._hostAddressOptions = hostAddressOptions
         self._encodeAccessLevel(accessLevel)
         self._encodeHostAddress(hostAddress)
         self._encodeOpenPorts(openPorts)
         self._encodeServices(services)
         self._encodeVulnerabilities(vulnerabilities)
 
-        self.empty_host_array = [0 for i in range(len(self.hostAddressOptions))]
+        # Creates The Default Hosts Array For When There Is No Hosts To Decode
+        self.defaultHostsArray = [0 for _ in range(len(self._hostAddressOptions))]
 
     # Function that decodes the access level from its state representation
     # @return {AccessLevel} The decoded access level
@@ -122,11 +125,11 @@ class StateSpace:
     def decodeHostAddress(self) -> str:
   
         # When There Us No Host Address Saved
-        if (self.hostAddress == self.empty_host_array).all():
+        if (self.hostAddress == self.defaultHostsArray).all():
             return ''
 
         # Creates The Decoder To Be Fitted With The Space Of The Host Address Options
-        decoder: OneHotEncoder = OneHotEncoder().fit(self.hostAddressOptions)
+        decoder: OneHotEncoder = OneHotEncoder().fit(self._hostAddressOptions)
 
         # Returns The Decoded Host Address
         return decoder.inverse_transform(self.hostAddress.reshape(1, -1))[0][0]
@@ -224,6 +227,16 @@ class StateSpace:
         # Returns The Decoded List Of Vulnerabilities
         return vulnerabilities
 
+    # Function That Gets The Amount Of Host Addresses In The State
+    # @return {int} The amount of host addresses
+    def getHostAddressCount(self) -> int:
+        return len(self._hostAddressOptions)
+
+    # Function That Get Gets The Host Address Options
+    # @return {List[List[str]]} The host address options
+    def getHostAddressOptions(self) -> List[List[str]]:
+        return self._hostAddressOptions
+
     # Function That Prints The State Space Object In A Nicely Formatted Way
     #
     def print(self):
@@ -284,7 +297,7 @@ class StateSpace:
         npHostAddress: List[List[str]] = [[hostAddress]]
 
         # Creates The Encoder To Be Fitted With The Space Of The Host Address Options
-        encoder: OneHotEncoder = OneHotEncoder().fit(self.hostAddressOptions)
+        encoder: OneHotEncoder = OneHotEncoder().fit(self._hostAddressOptions)
 
         # Sets The Encoded Host Address To The Host Address State
         self.hostAddress: numpy.ndarray = numpy.array(encoder.transform(npHostAddress).toarray()[0]).astype(int)
@@ -382,8 +395,7 @@ class StateParser:
     # @param {Dict} nettackerJson - The nettacker json data stored in a dictionary
     def __init__(self, nettackerJson: List[Dict]):
 
-        # Opens The Json File And Loads The Host Data Into A List
-
+        # Gets The Data From The Nettacker Json
         hostList: List[Dict] = nettackerJson
 
         # A List Of The State Spaces Parsed From The Json File
@@ -461,14 +473,14 @@ class StateParser:
 class ObservationSpace(spaces.Dict, ABC):
 
     # Function that initializes the class
-    def __init__(self, nettackerJson: Dict):
+    def __init__(self, nettackerJson: List[Dict]):
 
         # Defines The State Space And Initial State Space
         self._stateSpaces        : List[StateSpace] = StateParser(nettackerJson).stateSpaces
         self._initialStateSpaces : List[StateSpace] = self._stateSpaces
 
         # Gets The Amount Of Host Address Options To Chose From
-        hostAddressCount = len(self._stateSpaces[0].hostAddressOptions)
+        hostAddressCount = self._stateSpaces[0].getHostAddressCount()
 
         # Defines The Scope Of The Observation Space
         self._obvSpace: OrderedDict = OrderedDict({
@@ -589,7 +601,7 @@ class ObservationSpace(spaces.Dict, ABC):
             openPorts          = currentOpenPorts,
             services           = currentServices,
             vulnerabilities    = currentVulnerabilities,
-            hostAddressOptions = self._stateSpaces[currentIndex].hostAddressOptions,
+            hostAddressOptions = self._stateSpaces[currentIndex].getHostAddressOptions(),
             hostAddress        = hostAddress
         )
 

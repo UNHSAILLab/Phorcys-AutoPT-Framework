@@ -29,7 +29,7 @@ from .StateSpace  import ObservationSpace
 
 class Environment(Env):
 
-    HOST_MAX_ACTIONS_OUTPUT = 'MAX_TERMINAL'
+    #HOST_MAX_ACTIONS_OUTPUT = 'MAX_TERMINAL'
 
     # Defines The Cost And Success Reward Values For Each Exploit
     reward_mapping: Dict[str, Dict[str, int]] = {
@@ -94,7 +94,7 @@ class Environment(Env):
     # The Custom Environment Class For The Gym Interface
     def __init__(
             self,
-            nettackerJson    : Dict,
+            nettackerJson    : List[Dict],
             metasploitConfig : Dict,
             report           : Report,
             actionsToTake    : int  = 20,
@@ -109,9 +109,12 @@ class Environment(Env):
         # Sets The Report
         self.report = report
 
-        # Instantiates The Action Space, Observation Space, And Network
-        self.action_space      : spaces.Dict      = ActionSpace.getActionSpace()
+        # Instantiates The Observation Space
         self.observation_space : ObservationSpace = ObservationSpace(nettackerJson)
+
+        # Configures The Action Space
+        hostAddressOptions: List[List[str]] = self.observation_space.getStates()[0].getHostAddressOptions()
+        self.action_space_instance: ActionSpace = ActionSpace(hostAddressOptions)
 
         # Configures The Metasploit API
         self._metasploitAPI = MetasploitInterface(
@@ -131,13 +134,17 @@ class Environment(Env):
     # Resets The State Of The Environment
     def reset(self) -> OrderedDict:
 
+        # Resets The Terminal Dictionary By Getting The Host Addresses From The State
         self.terminal_dict = {}
-        
         for state in self.observation_space.getStates():
             host_address = state.decodeHostAddress()
             self.terminal_dict[host_address] = 0
-        
-        print(f'New Terminal DICT: {self.terminal_dict}')
+
+        # Resets The Action Space To The Default Dictionary Of Actions
+        self.action_space: spaces.Dict = self.action_space_instance.resetActionSpace()
+
+        print(f'RESET TERMINAL DICT: {self.terminal_dict}')
+        print(f'RESET ACTION SPACE: {self.action_space}')
         return self.observation_space.getInitialObvState()
 
     # Selects An Action To Take
@@ -156,12 +163,12 @@ class Environment(Env):
         # Gets Whether The Terminal State Has Been Triggered
         isTerminal = self._terminal_state(target, isSuccess)
         
-        print(self.terminal_dict)
-        # check if one host is in terminal
-        if not isTerminal:
-            if output == self.HOST_MAX_ACTIONS_OUTPUT:
-                print(f"MAX OUTPUT REACHED: {target}")
-                return updatedObservation, float(0), False, {}
+        # print(self.terminal_dict)
+        # # check if one host is in terminal
+        # if not isTerminal:
+        #     if output == self.HOST_MAX_ACTIONS_OUTPUT:
+        #         print(f"MAX OUTPUT REACHED: {target}")
+        #         return updatedObservation, float(0), False, {}
 
         # When An Exploit Was Successful Update The Report Data
         if isSuccess: self.report.updateReportData(accessLevel, target, port, exploit, output)
@@ -200,20 +207,16 @@ class Environment(Env):
     def _take_action(self, action):
 
         # Parses The Actions From Their Discrete Values
-        actions = ActionSpace(action)
-        target  = actions.getTarget()
-        port    = actions.getPort()
-        exploit = actions.getExploit()
+        target, port, exploit = self.action_space_instance.getActions(action)
 
-        if self._check_host_terminal(target):
-            observation = self.observation_space.getObservation(target)
-            accessLevel = self.observation_space.getAccessLevel('')
-
-            return observation, accessLevel, target, port, exploit, self.HOST_MAX_ACTIONS_OUTPUT, False
-
+        # if self._check_host_terminal(target):
+        #     observation = self.observation_space.getObservation(target)
+        #     accessLevel = self.observation_space.getAccessLevel('')
+        #
+        #     return observation, accessLevel, target, port, exploit, self.HOST_MAX_ACTIONS_OUTPUT, False
 
         # Runs The Exploit Chosen By The Agent And
-        isSuccess, accessLevel, output = self._metasploitAPI.run(target=target, exploit=exploit, port=port)
+        isSuccess, accessLevel, output = self._metasploitAPI.run(target, exploit, port)
 
         # Updates The Observation If Necessary
         observation = self.observation_space.getObservation(target)
@@ -237,26 +240,24 @@ class Environment(Env):
         # Adds One To The Amount Of Actions Already Taken On The Current Host
         self.terminal_dict[target] = self.terminal_dict[target] + 1
 
-        # When The Max Amount Of Actions Were Taken, Terminate
-
+        # Creates A Temporary List To See If All The Hosts Are Terminal
         hosts_terminal = []
 
-        # create temp list to see if all hosts hit the max actions
+        # Checks Whether Each Host Is Terminal Or Not
         for host in self.terminal_dict:
-
             if self.terminal_dict[host] >= self.actions_to_take:
                 hosts_terminal.append(True)
+                self.action_space: spaces.Dict = self.action_space_instance.updateActionSpace(host)
             else:
                 hosts_terminal.append(False)
-                # this host is done 
 
-        # check host_teriminals if all are true
+        # Checks Whether All The Hosts Are Terminal Or Not
         print(hosts_terminal)
         for isTerminal in hosts_terminal:
-            if isTerminal == False: return False
-        
-        return True
+            if not isTerminal: return False
 
+        # Returns That The Terminal Condition Was Met
+        return True
 
     def _check_host_terminal(self, target):
 
@@ -265,5 +266,3 @@ class Environment(Env):
             return True
 
         return False
-
-
