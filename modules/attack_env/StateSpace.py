@@ -102,6 +102,8 @@ class StateSpace:
         self._encodeServices(services)
         self._encodeVulnerabilities(vulnerabilities)
 
+        self.empty_host_array = [0 for i in range(len(self.hostAddressOptions))]
+
     # Function that decodes the access level from its state representation
     # @return {AccessLevel} The decoded access level
     def decodeAccessLevel(self) -> AccessLevel:
@@ -118,9 +120,9 @@ class StateSpace:
     # Function that decodes the host address from its state representation
     # @return {str} The host machines public ipv4 address
     def decodeHostAddress(self) -> str:
-
+  
         # When There Us No Host Address Saved
-        if (self.hostAddress == [0, 0, 0, 0]).all():
+        if (self.hostAddress == self.empty_host_array).all():
             return ''
 
         # Creates The Decoder To Be Fitted With The Space Of The Host Address Options
@@ -378,11 +380,11 @@ class StateParser:
 
     # Function that initializes the class
     # @param {Dict} nettackerJson - The nettacker json data stored in a dictionary
-    def __init__(self, nettackerJson: Dict):
+    def __init__(self, nettackerJson: List[Dict]):
 
         # Opens The Json File And Loads The Host Data Into A List
-        jsonFile: TextIO = open('input.json')
-        hostList: List[dict] = json.load(jsonFile)
+
+        hostList: List[Dict] = nettackerJson
 
         # A List Of The State Spaces Parsed From The Json File
         self.stateSpaces: List[StateSpace] = []
