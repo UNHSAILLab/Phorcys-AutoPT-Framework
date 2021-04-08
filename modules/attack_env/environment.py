@@ -143,7 +143,6 @@ class Environment(Env):
             host_address = state.decodeHostAddress()
             self.terminal_dict[host_address] = 0
 
-        print(f'RESET TERMINAL DICT: {self.terminal_dict}')
         return self.observation_space.getInitialObvState()
 
     # Selects An Action To Take
@@ -155,8 +154,6 @@ class Environment(Env):
                 - Terminal state
                 - no info 
         """
-        print(action)
-
         # Gets The Data From The Action That The Agent Has Taken
         updatedObservation, accessLevel, target, port, exploit, output, isSuccess = self._take_action(action)
         
@@ -166,7 +163,6 @@ class Environment(Env):
         # Checks Whether The Chosen Target Has No Actions Left To tTake
         if not isTerminal:
             if output == self.HOST_MAX_ACTIONS_OUTPUT:
-                print(f"MAX OUTPUT REACHED: {target}")
                 return updatedObservation, float(0), False, {}
 
         # When An Exploit Was Successful Update The Report Data
@@ -176,13 +172,13 @@ class Environment(Env):
         reward = self._get_reward(exploit, isSuccess)
 
         # Temporary Printing Of Step Data
-        print("-"*15)
-        print(f"Exploit: {exploit}")
-        print(f"AccessLevel: {accessLevel}")
-        print(f"REWARD: {reward}")
-        print(f"ACTIONSPACE: {self.action_space}")
-        print(f"ISTERMINAL: {isTerminal}")
-        print("-"*15)
+        # print("-"*15)
+        # print(f"Target: {target}:{port}")
+        # print(f"Exploit: {exploit}")
+        # print(f"AccessLevel: {accessLevel}")
+        # print(f"REWARD: {reward}")
+        # print(f"ISTERMINAL: {isTerminal}")
+        # print("-"*15)
 
         # Returns The Step Back To The Agent
         return updatedObservation, float(reward), isTerminal, {}
@@ -253,7 +249,7 @@ class Environment(Env):
                 hosts_terminal.append(False)
 
         # Checks Whether All The Hosts Are Terminal Or Not
-        print(hosts_terminal)
+        # print(hosts_terminal)
         for isTerminal in hosts_terminal:
             if not isTerminal: return False
 

@@ -718,7 +718,7 @@ class MetasploitInterface:
             
             except Exception as e:
                 if self.verbosity == "DEBUG":
-                    print(e)
+                    print(str(e))
                 user_level = "No access"
                 success = False
         
