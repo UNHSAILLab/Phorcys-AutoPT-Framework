@@ -71,10 +71,10 @@ def arguments():
 
     return None, None
 
-def train_agent(data, nettacker_json, args):
+def train_agent(data, nettacker_json, report, args):
     """ Used for training RL agent for the gym environment via A2C """
 
-    env = Environment(nettacker_json, data, actionsToTake=args.actions, logLevel=args.logLevel)
+    env = Environment(nettacker_json, data, report, actionsToTake=args.actions, logLevel=args.logLevel)
 
     # may want to disable log_to_driver less output.
     # just to make sure ray is cleaned up before re-enabling.
@@ -137,9 +137,11 @@ if __name__ == '__main__':
     # setup settings
     data = utils.get_config(ip)
 
+    # Instantiates The Report Class
+    report: Report = Report()
+
     if args.banner:
         utils.print_banner()
-
 
     pp = pprint.PrettyPrinter(indent=4)
     scanner = NettackerInterface(**data)
@@ -155,6 +157,7 @@ if __name__ == '__main__':
     nettacker_json = scanner.get_port_scan_data(new_scan=args.scan)
 
     try:
-        train_agent(data, nettacker_json, args)
+        train_agent(data, nettacker_json, report, args)
+        report.generateReport()
     except KeyboardInterrupt:
         ray.shutdown()
