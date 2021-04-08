@@ -22,7 +22,11 @@ from collections  import OrderedDict
 from gym          import Env
 from gym          import spaces
 from typing       import Dict
+<<<<<<< HEAD
 from typing       import List 
+=======
+from typing       import List
+>>>>>>> 73f579c6b7e72208b1765f6ca2f8aa60ed399854
 from .ActionSpace import ActionSpace
 from .metasploit  import MetasploitInterface
 from modules.report.Report import Report
@@ -30,7 +34,8 @@ from .StateSpace  import ObservationSpace
 
 class Environment(Env):
 
-    #HOST_MAX_ACTIONS_OUTPUT = 'MAX_TERMINAL'
+    # When A Host Has No Actions Left To Take
+    HOST_MAX_ACTIONS_OUTPUT = 'MAX_TERMINAL'
 
     # Defines The Cost And Success Reward Values For Each Exploit
     reward_mapping: Dict[str, Dict[str, int]] = {
@@ -116,6 +121,7 @@ class Environment(Env):
         # Configures The Action Space
         hostAddressOptions: List[List[str]] = self.observation_space.getStates()[0].getHostAddressOptions()
         self.action_space_instance: ActionSpace = ActionSpace(hostAddressOptions)
+        self.action_space: spaces.Dict = self.action_space_instance.resetActionSpace()
 
         # Configures The Metasploit API
         self._metasploitAPI = MetasploitInterface(
@@ -141,11 +147,7 @@ class Environment(Env):
             host_address = state.decodeHostAddress()
             self.terminal_dict[host_address] = 0
 
-        # Resets The Action Space To The Default Dictionary Of Actions
-        self.action_space: spaces.Dict = self.action_space_instance.resetActionSpace()
-
         print(f'RESET TERMINAL DICT: {self.terminal_dict}')
-        print(f'RESET ACTION SPACE: {self.action_space}')
         return self.observation_space.getInitialObvState()
 
     # Selects An Action To Take
@@ -164,6 +166,7 @@ class Environment(Env):
         
         # Gets Whether The Terminal State Has Been Triggered
         isTerminal = self._terminal_state(target, isSuccess)
+<<<<<<< HEAD
         
         # print(self.terminal_dict)
         # # check if one host is in terminal
@@ -171,6 +174,14 @@ class Environment(Env):
         #     if output == self.HOST_MAX_ACTIONS_OUTPUT:
         #         print(f"MAX OUTPUT REACHED: {target}")
         #         return updatedObservation, float(0), False, {}
+=======
+
+        # Checks Whether The Chosen Target Has No Actions Left To tTake
+        if not isTerminal:
+            if output == self.HOST_MAX_ACTIONS_OUTPUT:
+                print(f"MAX OUTPUT REACHED: {target}")
+                return updatedObservation, float(0), False, {}
+>>>>>>> 73f579c6b7e72208b1765f6ca2f8aa60ed399854
 
         # When An Exploit Was Successful Update The Report Data
         if isSuccess: self.report.updateReportData(accessLevel, target, port, exploit, output)
@@ -212,11 +223,13 @@ class Environment(Env):
         # Parses The Actions From Their Discrete Values
         exploit, port, target = self.action_space_instance.getActions(action)
 
-        # if self._check_host_terminal(target):
-        #     observation = self.observation_space.getObservation(target)
-        #     accessLevel = self.observation_space.getAccessLevel('')
-        #
-        #     return observation, accessLevel, target, port, exploit, self.HOST_MAX_ACTIONS_OUTPUT, False
+        # Checks Whether A Host Is Already In The Terminal State
+        if self._check_host_terminal(target):
+            observation = self.observation_space.getObservation(target)
+            accessLevel = self.observation_space.getAccessLevel('')
+
+            # Returns The Current Observation And That The Host Has Exceeded The Amount Of Actions It Can Take
+            return observation, accessLevel, target, port, exploit, self.HOST_MAX_ACTIONS_OUTPUT, False
 
         # Runs The Exploit Chosen By The Agent And
         isSuccess, accessLevel, output = self._metasploitAPI.run(target, exploit, port)
@@ -250,8 +263,11 @@ class Environment(Env):
         for host in self.terminal_dict:
             if self.terminal_dict[host] >= self.actions_to_take:
                 hosts_terminal.append(True)
+<<<<<<< HEAD
                 self.action_space: spaces.Dict = self.action_space_instance.updateActionSpace(host)
                 print('action space updated')
+=======
+>>>>>>> 73f579c6b7e72208b1765f6ca2f8aa60ed399854
             else:
                 hosts_terminal.append(False)
 
