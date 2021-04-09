@@ -26,7 +26,6 @@ class ActionSpace:
         10 : 'exploit/unix/ftp/proftpd_133c_backdoor',
         11 : 'exploit/windows/rdp/cve_2019_0708_bluekeep_rce',
         12 : 'exploit/windows/smb/ms17_010_eternalblue',
-        13 : 'exploit/windows/smb/psexec'
     }
 
     # The Agent Action Mapping For The Possible Ports
@@ -85,7 +84,7 @@ class ActionSpace:
         return spaces.Dict({
             'target'  : spaces.Discrete(targetCount),
             'port'    : spaces.Discrete(16),
-            'exploit' : spaces.Discrete(14)
+            'exploit' : spaces.Discrete(13)
         })
 
     # Function That Gets The Values Associated With The Action That The Agent Has Taken

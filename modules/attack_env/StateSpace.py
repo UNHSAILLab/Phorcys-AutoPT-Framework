@@ -48,7 +48,6 @@ class StateSpace:
         ['exploit/unix/ftp/proftpd_133c_backdoor'],
         ['exploit/windows/rdp/cve_2019_0708_bluekeep_rce'],
         ['exploit/windows/smb/ms17_010_eternalblue'],
-        ['exploit/windows/smb/psexec']
     ]
 
     # The Access Level Options Available
@@ -201,14 +200,14 @@ class StateSpace:
     def decodeVulnerabilities(self) -> List[str]:
 
         # When There Are No Vulnerabilities Saved
-        if (self.vulnerabilities == [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]).all():
+        if (self.vulnerabilities == [0, 0, 0, 0, 0, 0, 0, 0, 0]).all():
             return ['']
 
         # Generate The One Hot Encoded Array
         oneHotArray: List[List[int]] = []
         for index, item in enumerate(self.vulnerabilities):
             if item == 1:
-                vulnerability = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+                vulnerability = [0, 0, 0, 0, 0, 0, 0, 0, 0]
                 vulnerability[index] = 1
                 oneHotArray.append(vulnerability)
 
@@ -366,7 +365,7 @@ class StateSpace:
 
         # When Their Are No Vulnerabilities Found
         if vulnerabilities is None:
-            self.vulnerabilities = numpy.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+            self.vulnerabilities = numpy.array([0, 0, 0, 0, 0, 0, 0, 0, 0])
             return
 
         # Converts The Vulnerabilities Found To A 2D Array
@@ -379,7 +378,7 @@ class StateSpace:
         encodedVulnerabilities: List[numpy.ndarray] = encoder.transform(npVulnerabilities).toarray()
 
         # Takes The One Hot Encoded Vulnerabilities And Merges Them
-        mergedVulnerabilities: numpy.ndarray = numpy.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+        mergedVulnerabilities: numpy.ndarray = numpy.array([0, 0, 0, 0, 0, 0, 0, 0, 0])
         for encodedVulnerability in encodedVulnerabilities:
             mergedVulnerabilities = numpy.logical_or(mergedVulnerabilities, encodedVulnerability)
 
