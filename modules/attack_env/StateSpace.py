@@ -487,7 +487,7 @@ class ObservationSpace(spaces.Dict, ABC):
             'hostAddress'     : spaces.MultiBinary(hostAddressCount),
             'openPorts'       : spaces.MultiBinary(16),
             'services'        : spaces.MultiBinary(4),
-            'vulnerabilities' : spaces.MultiBinary(10)
+            'vulnerabilities' : spaces.MultiBinary(9)
         })
 
         # Generates The Observation State Space And Initial Observation State Space
