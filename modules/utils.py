@@ -40,11 +40,11 @@ def print_banner():
 #     tf.compat.v1.disable_eager_execution()
     
     
-def get_config(ip, path):
+def get_config(ip):
     """ Create the configuration dictionary from the settings """
     config_parser = configparser.ConfigParser()
 
-    config_parser.read(f'{path}/config.ini')
+    config_parser.read('config.ini')
 
     parameters = {
         'nettacker_ip': config_parser.get('Nettacker', 'ip'),
