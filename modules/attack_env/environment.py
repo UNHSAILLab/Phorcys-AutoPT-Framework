@@ -36,23 +36,23 @@ class Environment(Env):
     # Defines The Cost And Success Reward Values For Each Exploit
     reward_mapping: Dict[str, Dict[str, int]] = {
         'auxiliary/scanner/ftp/ftp_version': {
-            'cost'    : 2,
+            'cost'    : 1,
             'success' : 5
         },
         'auxiliary/scanner/rdp/rdp_scanner': {
-            'cost'    : 2,
+            'cost'    : 1,
             'success' : 5
         },
         'auxiliary/scanner/smb/smb_version': {
-            'cost'    : 2,
+            'cost'    : 1,
             'success' : 5
         },
         'auxiliary/scanner/ssh/ssh_version': {
-            'cost'    : 2,
+            'cost'    : 1,
             'success' : 5
         },
         'auxiliary/scanner/ftp/anonymous': {
-            'cost'    : 3,
+            'cost'    : 1,
             'success' : 10
         },
         'auxiliary/scanner/ftp/ftp_login': {
@@ -61,35 +61,31 @@ class Environment(Env):
         },
         'auxiliary/scanner/rdp/cve_2019_0708_bluekeep': {
             'cost'    : 2,
-            'success' : 13
+            'success' : 7
         },
         'auxiliary/scanner/smb/smb_login': {
             'cost'    : 2,
             'success' : 12
         },
         'auxiliary/scanner/smb/smb_ms17_010': {
-            'cost'    : 2,
+            'cost'    : 1,
             'success' : 8
         },
         'auxiliary/scanner/ssh/ssh_login': {
             'cost'    : 2,
-            'success' : 15
+            'success' : 12
         },
         'exploit/unix/ftp/proftpd_133c_backdoor': {
             'cost'    : 5,
-            'success' : 15
+            'success' : 40
         },
         'exploit/windows/rdp/cve_2019_0708_bluekeep_rce': {
-            'cost'    : 8,
-            'success' : 25
+            'cost'    : 5,
+            'success' : 50
         },
         'exploit/windows/smb/ms17_010_eternalblue': {
-            'cost'    : 8,
-            'success' : 25
-        },
-        'exploit/windows/smb/psexec': {
-            'cost'    : 8,
-            'success' : 20
+            'cost'    : 5,
+            'success' : 50
         }
     }
 
@@ -119,6 +115,9 @@ class Environment(Env):
         self.action_space_instance: ActionSpace = ActionSpace(hostAddressOptions)
         self.action_space: spaces.Dict = self.action_space_instance.resetActionSpace()
 
+        self.metasploitConfig = metasploitConfig
+        self.logLevel = logLevel
+
         # Configures The Metasploit API
         self._metasploitAPI = MetasploitInterface(
             metasploitConfig.get('metasploit_ip'),
@@ -136,6 +135,13 @@ class Environment(Env):
 
     # Resets The State Of The Environment
     def reset(self) -> OrderedDict:
+        # Reset connect to metasploit
+        self._metasploitAPI = MetasploitInterface(
+            self.metasploitConfig.get('metasploit_ip'),
+            self.metasploitConfig.get('metasploit_port'),
+            self.metasploitConfig.get('metasploit_password'), 
+            self.logLevel
+        )
 
         # Resets The Terminal Dictionary By Getting The Host Addresses From The State
         self.terminal_dict = {}
@@ -163,6 +169,8 @@ class Environment(Env):
         # Checks Whether The Chosen Target Has No Actions Left To tTake
         if not isTerminal:
             if output == self.HOST_MAX_ACTIONS_OUTPUT:
+                print(f"DICT: {self.terminal_dict}")
+                print(f"Target: {target}, has taken MAX ACTIONS!")
                 return updatedObservation, float(0), False, {}
 
         # When An Exploit Was Successful Update The Report Data
@@ -172,13 +180,13 @@ class Environment(Env):
         reward = self._get_reward(exploit, isSuccess)
 
         # Temporary Printing Of Step Data
-        # print("-"*15)
-        # print(f"Target: {target}:{port}")
-        # print(f"Exploit: {exploit}")
-        # print(f"AccessLevel: {accessLevel}")
-        # print(f"REWARD: {reward}")
-        # print(f"ISTERMINAL: {isTerminal}")
-        # print("-"*15)
+        print("-"*15)
+        print(f"Target: {target}:{port}")
+        print(f"Exploit: {exploit}")
+        print(f"AccessLevel: {accessLevel}")
+        print(f"REWARD: {reward}")
+        print(f"ISTERMINAL: {isTerminal}")
+        print("-"*15)
 
         # Returns The Step Back To The Agent
         return updatedObservation, float(reward), isTerminal, {}
@@ -232,7 +240,7 @@ class Environment(Env):
         if isSuccess:
 
             # Allows The Agent To Take Five More Actions On The Current Target
-            self.terminal_dict[target] = self.terminal_dict[target] - 5
+            self.terminal_dict[target] = self.terminal_dict[target] - 1
             return False
 
         # Adds One To The Amount Of Actions Already Taken On The Current Host
