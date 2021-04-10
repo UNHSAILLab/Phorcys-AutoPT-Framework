@@ -686,8 +686,9 @@ class MetasploitInterface:
                 print(e)
             user_level = ""
             success = False
+            
         self.client.sessions.session(number).stop()
-        print(self.cleint.sessions.list)
+
         self.client.consoles.console(cid).destroy
 
         return success, user_level, results

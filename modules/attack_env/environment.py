@@ -22,6 +22,7 @@ from collections  import OrderedDict
 from gym          import Env
 from gym          import spaces
 from typing       import Dict
+from typing       import List 
 from .ActionSpace import ActionSpace
 from .metasploit  import MetasploitInterface
 from modules.report.Report import Report
@@ -29,26 +30,29 @@ from .StateSpace  import ObservationSpace
 
 class Environment(Env):
 
+    # When A Host Has No Actions Left To Take
+    HOST_MAX_ACTIONS_OUTPUT = 'MAX_TERMINAL'
+
     # Defines The Cost And Success Reward Values For Each Exploit
     reward_mapping: Dict[str, Dict[str, int]] = {
         'auxiliary/scanner/ftp/ftp_version': {
-            'cost'    : 2,
+            'cost'    : 1,
             'success' : 5
         },
         'auxiliary/scanner/rdp/rdp_scanner': {
-            'cost'    : 2,
+            'cost'    : 1,
             'success' : 5
         },
         'auxiliary/scanner/smb/smb_version': {
-            'cost'    : 2,
+            'cost'    : 1,
             'success' : 5
         },
         'auxiliary/scanner/ssh/ssh_version': {
-            'cost'    : 2,
+            'cost'    : 1,
             'success' : 5
         },
         'auxiliary/scanner/ftp/anonymous': {
-            'cost'    : 3,
+            'cost'    : 1,
             'success' : 10
         },
         'auxiliary/scanner/ftp/ftp_login': {
@@ -57,42 +61,38 @@ class Environment(Env):
         },
         'auxiliary/scanner/rdp/cve_2019_0708_bluekeep': {
             'cost'    : 2,
-            'success' : 13
+            'success' : 7
         },
         'auxiliary/scanner/smb/smb_login': {
             'cost'    : 2,
             'success' : 12
         },
         'auxiliary/scanner/smb/smb_ms17_010': {
-            'cost'    : 2,
+            'cost'    : 1,
             'success' : 8
         },
         'auxiliary/scanner/ssh/ssh_login': {
             'cost'    : 2,
-            'success' : 15
+            'success' : 12
         },
         'exploit/unix/ftp/proftpd_133c_backdoor': {
             'cost'    : 5,
-            'success' : 15
+            'success' : 40
         },
         'exploit/windows/rdp/cve_2019_0708_bluekeep_rce': {
-            'cost'    : 8,
-            'success' : 25
+            'cost'    : 5,
+            'success' : 50
         },
         'exploit/windows/smb/ms17_010_eternalblue': {
-            'cost'    : 8,
-            'success' : 25
-        },
-        'exploit/windows/smb/psexec': {
-            'cost'    : 8,
-            'success' : 20
+            'cost'    : 5,
+            'success' : 50
         }
     }
 
     # The Custom Environment Class For The Gym Interface
     def __init__(
             self,
-            nettackerJson    : Dict,
+            nettackerJson    : List[Dict],
             metasploitConfig : Dict,
             report           : Report,
             actionsToTake    : int  = 20,
@@ -107,9 +107,16 @@ class Environment(Env):
         # Sets The Report
         self.report = report
 
-        # Instantiates The Action Space, Observation Space, And Network
-        self.action_space      : spaces.Dict      = ActionSpace.getActionSpace()
+        # Instantiates The Observation Space
         self.observation_space : ObservationSpace = ObservationSpace(nettackerJson)
+
+        # Configures The Action Space
+        hostAddressOptions: List[List[str]] = self.observation_space.getStates()[0].getHostAddressOptions()
+        self.action_space_instance: ActionSpace = ActionSpace(hostAddressOptions)
+        self.action_space: spaces.Dict = self.action_space_instance.resetActionSpace()
+
+        self.metasploitConfig = metasploitConfig
+        self.logLevel = logLevel
 
         # Configures The Metasploit API
         self._metasploitAPI = MetasploitInterface(
@@ -128,7 +135,20 @@ class Environment(Env):
 
     # Resets The State Of The Environment
     def reset(self) -> OrderedDict:
+        # Reset connect to metasploit
+        self._metasploitAPI = MetasploitInterface(
+            self.metasploitConfig.get('metasploit_ip'),
+            self.metasploitConfig.get('metasploit_port'),
+            self.metasploitConfig.get('metasploit_password'), 
+            self.logLevel
+        )
+
+        # Resets The Terminal Dictionary By Getting The Host Addresses From The State
         self.terminal_dict = {}
+        for state in self.observation_space.getStates():
+            host_address = state.decodeHostAddress()
+            self.terminal_dict[host_address] = 0
+
         return self.observation_space.getInitialObvState()
 
     # Selects An Action To Take
@@ -140,9 +160,18 @@ class Environment(Env):
                 - Terminal state
                 - no info 
         """
-
         # Gets The Data From The Action That The Agent Has Taken
         updatedObservation, accessLevel, target, port, exploit, output, isSuccess = self._take_action(action)
+        
+        # Gets Whether The Terminal State Has Been Triggered
+        isTerminal = self._terminal_state(target, isSuccess)
+
+        # Checks Whether The Chosen Target Has No Actions Left To tTake
+        if not isTerminal:
+            if output == self.HOST_MAX_ACTIONS_OUTPUT:
+                print(f"DICT: {self.terminal_dict}")
+                print(f"Target: {target}, has taken MAX ACTIONS!")
+                return updatedObservation, float(0), False, {}
 
         # When An Exploit Was Successful Update The Report Data
         if isSuccess: self.report.updateReportData(accessLevel, target, port, exploit, output)
@@ -150,14 +179,14 @@ class Environment(Env):
         # Gets The Reward Based On The Used Exploit And Its Success
         reward = self._get_reward(exploit, isSuccess)
 
-        # Gets Whether The Terminal State Has Been Triggered
-        isTerminal = self._terminal_state(target, isSuccess)
-
         # Temporary Printing Of Step Data
+        print("-"*15)
+        print(f"Target: {target}:{port}")
         print(f"Exploit: {exploit}")
         print(f"AccessLevel: {accessLevel}")
         print(f"REWARD: {reward}")
         print(f"ISTERMINAL: {isTerminal}")
+        print("-"*15)
 
         # Returns The Step Back To The Agent
         return updatedObservation, float(reward), isTerminal, {}
@@ -182,13 +211,18 @@ class Environment(Env):
     def _take_action(self, action):
 
         # Parses The Actions From Their Discrete Values
-        actions = ActionSpace(action)
-        target  = actions.getTarget()
-        port    = actions.getPort()
-        exploit = actions.getExploit()
+        exploit, port, target = self.action_space_instance.getActions(action)
+
+        # Checks Whether A Host Is Already In The Terminal State
+        if self._check_host_terminal(target):
+            observation = self.observation_space.getObservation(target)
+            accessLevel = self.observation_space.getAccessLevel('')
+
+            # Returns The Current Observation And That The Host Has Exceeded The Amount Of Actions It Can Take
+            return observation, accessLevel, target, port, exploit, self.HOST_MAX_ACTIONS_OUTPUT, False
 
         # Runs The Exploit Chosen By The Agent And
-        isSuccess, accessLevel, output = self._metasploitAPI.run(target=target, exploit=exploit, port=port)
+        isSuccess, accessLevel, output = self._metasploitAPI.run(target, exploit, port)
 
         # Updates The Observation If Necessary
         observation = self.observation_space.getObservation(target)
@@ -202,23 +236,38 @@ class Environment(Env):
     # Checks Whether The Agent Has Triggered The Terminal State
     def _terminal_state(self, target, isSuccess):
 
-        # Sets The Default Amount Of Actions When The Target Does Not Exist
-        self.terminal_dict.setdefault(target, 0)
-
         # When The Action Was Successful
         if isSuccess:
 
             # Allows The Agent To Take Five More Actions On The Current Target
-            self.terminal_dict[target] = self.terminal_dict[target] - 5
+            self.terminal_dict[target] = self.terminal_dict[target] - 1
             return False
 
         # Adds One To The Amount Of Actions Already Taken On The Current Host
         self.terminal_dict[target] = self.terminal_dict[target] + 1
 
-        # When The Max Amount Of Actions Were Taken, Terminate
-        if self.terminal_dict[target] >= self.actions_to_take:
-            print("TERMINATED!!!!!!!!!!!!!!!!!!!")
+        # Creates A Temporary List To See If All The Hosts Are Terminal
+        hosts_terminal = []
+
+        # Checks Whether Each Host Is Terminal Or Not
+        for host in self.terminal_dict:
+            if self.terminal_dict[host] >= self.actions_to_take:
+                hosts_terminal.append(True)
+            else:
+                hosts_terminal.append(False)
+
+        # Checks Whether All The Hosts Are Terminal Or Not
+        # print(hosts_terminal)
+        for isTerminal in hosts_terminal:
+            if not isTerminal: return False
+
+        # Returns That The Terminal Condition Was Met
+        return True
+
+    def _check_host_terminal(self, target):
+
+        # if host is in terminal
+        if self.terminal_dict.get(target, 0) >= self.actions_to_take:
             return True
 
-        # Continue Taking Actions
         return False

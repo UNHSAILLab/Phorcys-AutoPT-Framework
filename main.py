@@ -45,7 +45,7 @@ def arguments():
                         default='', help="use json file instead of nettacker data.")
 
     parser.add_argument("-i", "--iterations", dest='iterations', nargs='?', const=1, type=int,
-                        default=1000, help="Define number of training iterations for RL agent (Default: 1000)")
+                        default=100000, help="Define number of training iterations for RL agent (Default: 100000)")
 
     parser.add_argument("-a", "--actions_per_target", dest='actions', nargs='?', const=1, type=int,
                         default=5, help="Define training number of actions per host that is allowed. (Default: 5)")
