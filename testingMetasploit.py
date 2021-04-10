@@ -66,7 +66,7 @@ if __name__ == '__main__':
     # success, user_level, results = metasploit.run(data.get('target'), 'auxiliary/scanner/ftp/ftp_login', 21)
     # success, user_level, results = metasploit.run(data.get('target'), 'auxiliary/scanner/ftp/ftp_version', 21)
     # success, user_level, results = metasploit.run(data.get('target'), 'exploit/unix/ftp/proftpd_133c_backdoor', 21)
-    # success, user_level, results = metasploit.run(data.get('target'), 'auxiliary/scanner/smb/smb_ms17_010', 3389)
+    # success, user_level, results = metasploit.run(data.get('target'), 'auxiliary/scanner/smb/smb_ms17_010', 445)
     # success, user_level, results = metasploit.run(data.get('target'), 'exploit/windows/smb/ms17_010_eternalblue', 445)
     # success, user_level, results = metasploit.run(data.get('target'), 'auxiliary/scanner/rdp/rdp_scanner', 3389)
     # success, user_level, results = metasploit.run(data.get('target'), 'auxiliary/scanner/rdp/cve_2019_0708_bluekeep', 3389)
@@ -78,11 +78,9 @@ if __name__ == '__main__':
     """ WON'T ERROR OUT BUT WE DON'T HAVE A HOST THAT IS VULNERABLE """
     # success, user_level, results = metasploit.run(data.get('target'), 'exploit/windows/rdp/cve_2019_0708_bluekeep_rce', 3389)
     
-
-    """ NEED FIXING / NEED TO BE PROPERLY SETUP"""
-
-    """ EXPLOIT WORKS IN MSFCONSOLE BUT IT IS MAD SLOW - Reason?"""
-    # success, user_level, results = metasploit.run(data.get('target'), 'exploit/windows/smb/psexec', 445)
+    # print(success)
+    # print(user_level)
+    # print(results)
     
     
     
