@@ -135,7 +135,8 @@ class Environment(Env):
 
     # Resets The State Of The Environment
     def reset(self) -> OrderedDict:
-        #reset metasploit
+
+        # Resets Metasploit
         self._metasploitAPI.reset()
 
         # Resets The Terminal Dictionary By Getting The Host Addresses From The State
@@ -144,6 +145,7 @@ class Environment(Env):
             host_address = state.decodeHostAddress()
             self.terminal_dict[host_address] = 0
 
+        # Returns The Initial Observation Space
         return self.observation_space.getInitialObvState()
 
     # Selects An Action To Take
@@ -159,7 +161,7 @@ class Environment(Env):
         updatedObservation, accessLevel, target, port, exploit, output, isSuccess = self._take_action(action)
         
         # Gets Whether The Terminal State Has Been Triggered
-        isTerminal = self._terminal_state(target, isSuccess)
+        isTerminal = self._terminal_state(target)
 
         # Checks Whether The Chosen Target Has No Actions Left To tTake
         if not isTerminal:
@@ -173,7 +175,6 @@ class Environment(Env):
 
         # Gets The Reward Based On The Used Exploit And Its Success
         reward = self._get_reward(exploit, isSuccess)
-
 
         if isTerminal:
             print("TERMINAL reached!")
@@ -226,14 +227,7 @@ class Environment(Env):
         return observation, accessLevel, target, port, exploit, output, isSuccess
 
     # Checks Whether The Agent Has Triggered The Terminal State
-    def _terminal_state(self, target, isSuccess):
-
-        # When The Action Was Successful
-        if isSuccess:
-
-            # Allows The Agent To Take Five More Actions On The Current Target
-            self.terminal_dict[target] = self.terminal_dict[target] - 1
-            return False
+    def _terminal_state(self, target):
 
         # Adds One To The Amount Of Actions Already Taken On The Current Host
         self.terminal_dict[target] = self.terminal_dict[target] + 1
@@ -256,6 +250,7 @@ class Environment(Env):
         # Returns That The Terminal Condition Was Met
         return True
 
+    # Checks Whether A Host Has Been Terminated
     def _check_host_terminal(self, target):
 
         # if host is in terminal
