@@ -1,22 +1,26 @@
 # Dealing with arguments
 # see tensorboard.sh
-# python3 main.py 192.168.1.100,192.168.1.200,192.168.1.201,192.168.1.183,192.168.1.231,192.168.1.79,192.168.1.115
+# nohup python3 main.py 192.168.1.100,192.168.1.200,192.168.1.201,192.168.1.183,192.168.1.231,192.168.1.79,192.168.1.115 -j temp.json -a 7 -w 20 > a2c_train.log &
+# ray start --head --num-cpus=48
+
 
 import os, sys
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' # remove warnings for normal runs.
+import logging
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '4' # remove warnings for normal runs.
 
 import tensorflow as tf
+logging.getLogger('tensorflow').disabled = True
+tf.compat.v1.disable_resource_variables()
 import argparse
 import textwrap
 import pprint
 import json
 import ray
 import ipaddress
-# import logging
-
 from ray import tune
 import ray.rllib.agents.a3c as A3C
 from ray.tune.registry import register_env
+from ray.tune.logger import pretty_print
 
 import modules.utils as utils
 from modules.attack_env import Environment
@@ -45,14 +49,14 @@ def arguments():
                         default='', help="use json file instead of nettacker data.")
 
     parser.add_argument("-i", "--iterations", dest='iterations', nargs='?', const=1, type=int,
-                        default=100000, help="Define number of training iterations for RL agent (Default: 100000)")
+                        default=1000, help="Define number of training iterations for RL agent (Default: 100000)")
 
     parser.add_argument("-a", "--actions_per_target", dest='actions', nargs='?', const=1, type=int,
                         default=5, help="Define training number of actions per host that is allowed. (Default: 5)")
 
     parser.add_argument("-w", "--workers", dest="workers", nargs='?', const=1, type=int,
                         default=0, help="Define number of Workers for training.")
-  
+
     parser.add_argument("-l", "--log", dest="logLevel", nargs='?', const=1, type=str, 
                         default='CRITICAL', help="Set the logging level - INFO or DEBUG")
 
@@ -94,8 +98,8 @@ def train_agent(data, nettacker_json, report, args):
 
     # can be security issue to bind 0.0.0.0 done on purpose to view it.
     # just doing for the purpose of analysis
-
-    ray.init(dashboard_host='0.0.0.0', ignore_reinit_error=True)
+    """log_to_driver=False,"""  
+    ray.init(dashboard_host='0.0.0.0', configure_logging=False, logging_level=100, ignore_reinit_error=True, num_cpus=32)
 
     # register the environment so it is accessible by string name.
     register_env('phorcys', lambda c: env)
@@ -103,36 +107,35 @@ def train_agent(data, nettacker_json, report, args):
 
     # pull default configuration from ray for A2C/A3C
     config = A3C.a2c.A2C_DEFAULT_CONFIG.copy()
-    
-    
-    config['env'] = 'phorcys'
-    #config['num_gpus'] = 2
 
-    # async can do alot of workers
+    config['env'] = 'phorcys'
+    # config['monitor'] = True # write repsidoe stats to log dir ~/ray_results
+
     print(f"NUM WORKERS: {args.workers}")
     config['num_workers'] = args.workers
 
-    # verbosity of ray tune
-    # config['log_level'] = 'DEBUG'
-    
-    # write to tensorboardW
-    config['monitor'] = True # write repsidoe stats to log dir ~/ray_results
-
     # do this otherwise it WILL result in halting. Time to wait for all the async workers.
-    config['min_iter_time_s'] = 5
-    config['train_batch_size'] = 32
-    config['rollout_fragment_length'] = 5
-
+    # config['min_iter_time_s'] = 10 # least 10 seconds before collection - shouldn't hit but good idea.
+    config['train_batch_size'] = 8
+    config["microbatch_size"] = 4
+    config['min_iter_time_s'] = 0
+    config['batch_mode'] = 'complete_episodes'
+    config['log_level'] = 'ERROR'
+    config['framework'] = 'tfe'
+    config['horizon'] = 16
+    config['timesteps_per_iteration'] = 8
 
     # just use restore to fix it
     tune.run(
         A3C.A2CTrainer,                         # ray rllib                        # data set to save in ~/ray_results
-        stop={"training_iteration": args.iterations},    # when to stop training
+        stop={"episodes_total": args.iterations},    # when to stop training
         config=config,
         checkpoint_freq=15,                       # save after each iterations
         max_failures=15,                          # due to high volattily chances of msfrpc going down for a second are high
-                                                 # add this so it doesn't terminate training unless serve error
+        # restore=<pathhere>,
+        name="Phorcys_A2C_Trial",
         checkpoint_at_end=True                   # add checkpoint once done so can continue training.
+
     )
 
     ray.shutdown()

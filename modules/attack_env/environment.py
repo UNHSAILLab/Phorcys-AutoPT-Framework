@@ -135,13 +135,8 @@ class Environment(Env):
 
     # Resets The State Of The Environment
     def reset(self) -> OrderedDict:
-        # Reset connect to metasploit
-        self._metasploitAPI = MetasploitInterface(
-            self.metasploitConfig.get('metasploit_ip'),
-            self.metasploitConfig.get('metasploit_port'),
-            self.metasploitConfig.get('metasploit_password'), 
-            self.logLevel
-        )
+        #reset metasploit
+        self._metasploitAPI.reset()
 
         # Resets The Terminal Dictionary By Getting The Host Addresses From The State
         self.terminal_dict = {}
@@ -169,7 +164,7 @@ class Environment(Env):
         # Checks Whether The Chosen Target Has No Actions Left To tTake
         if not isTerminal:
             if output == self.HOST_MAX_ACTIONS_OUTPUT:
-                print(f"DICT: {self.terminal_dict}")
+                # print(f"DICT: {self.terminal_dict}")
                 print(f"Target: {target}, has taken MAX ACTIONS!")
                 return updatedObservation, float(0), False, {}
 
@@ -179,17 +174,14 @@ class Environment(Env):
         # Gets The Reward Based On The Used Exploit And Its Success
         reward = self._get_reward(exploit, isSuccess)
 
-        # Temporary Printing Of Step Data
-        print("-"*15)
-        print(f"Target: {target}:{port}")
-        print(f"Exploit: {exploit}")
-        print(f"AccessLevel: {accessLevel}")
-        print(f"REWARD: {reward}")
-        print(f"ISTERMINAL: {isTerminal}")
-        print("-"*15)
+
+        if isTerminal:
+            print("Terminal reached!")
+        else:
+            print("-"*15)
 
         # Returns The Step Back To The Agent
-        return updatedObservation, float(reward), isTerminal, {}
+        return updatedObservation, float(reward), isTerminal, {'done': isTerminal}
 
     # Gets The Cost Based On The Type Of Action
     def _get_reward(self, exploit, success):
@@ -212,6 +204,10 @@ class Environment(Env):
 
         # Parses The Actions From Their Discrete Values
         exploit, port, target = self.action_space_instance.getActions(action)
+
+        print("-"*15)
+        print(f"Target: {target}:{port}")
+        print(f"Exploit: {exploit}")
 
         # Checks Whether A Host Is Already In The Terminal State
         if self._check_host_terminal(target):
