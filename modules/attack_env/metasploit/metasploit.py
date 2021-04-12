@@ -74,7 +74,7 @@ class MetasploitInterface:
                 return 0, "", ""
         except:
             print('sessionID being reset action failed')
-            self.destroy()
+            self.reset()
             return 0, "", ""
         
         return success, user_level, results
@@ -219,7 +219,7 @@ class MetasploitInterface:
         
         if number == -1:
             user_level = ""
-            success = False;
+            success = False
             return  success, user_level, results
         
         try:
@@ -329,6 +329,10 @@ class MetasploitInterface:
     def scanFTPLogin(self, target, exploit, port):
         """ SETS UP INITIAL VALUES AND MODULE INFORMATION"""
         success, user_level = False, ''
+
+        if port == 135 or port == 3389 or port == 3268:
+            return False, '', ''
+
         module, specific_module = self.getModuleInfo(exploit)
 
         """ SETS UP EXPLOIT"""
@@ -421,6 +425,10 @@ class MetasploitInterface:
     def scanSMBlogin(self, target, exploit, port):
         """ SETS UP THE VARIABLES AND MODULE INFORMATION"""
         success, user_level = False, ''
+
+        if port == 21 or port == 22:
+            return False, '', ''
+
         module, specific_module = self.getModuleInfo(exploit)
 
         """ CREATS MODULE AND SETS UP EXPLOIT"""

@@ -165,7 +165,7 @@ class Environment(Env):
         if not isTerminal:
             if output == self.HOST_MAX_ACTIONS_OUTPUT:
                 # print(f"DICT: {self.terminal_dict}")
-                print(f"Target: {target}, has taken MAX ACTIONS!")
+                # print(f"Target: {target}, has taken MAX ACTIONS!")
                 return updatedObservation, float(0), False, {}
 
         # When An Exploit Was Successful Update The Report Data
@@ -176,9 +176,7 @@ class Environment(Env):
 
 
         if isTerminal:
-            print("Terminal reached!")
-        else:
-            print("-"*15)
+            print("TERMINAL reached!")
 
         # Returns The Step Back To The Agent
         return updatedObservation, float(reward), isTerminal, {'done': isTerminal}
@@ -205,9 +203,7 @@ class Environment(Env):
         # Parses The Actions From Their Discrete Values
         exploit, port, target = self.action_space_instance.getActions(action)
 
-        print("-"*15)
-        print(f"Target: {target}:{port}")
-        print(f"Exploit: {exploit}")
+        print(f"Exploit: {exploit} Target: {target}:{port}")
 
         # Checks Whether A Host Is Already In The Terminal State
         if self._check_host_terminal(target):

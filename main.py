@@ -116,14 +116,13 @@ def train_agent(data, nettacker_json, report, args):
 
     # do this otherwise it WILL result in halting. Time to wait for all the async workers.
     # config['min_iter_time_s'] = 10 # least 10 seconds before collection - shouldn't hit but good idea.
-    config['train_batch_size'] = 8
-    config["microbatch_size"] = 4
+    config['train_batch_size'] = 32
+    config["microbatch_size"] = 16
     config['min_iter_time_s'] = 0
-    config['batch_mode'] = 'complete_episodes'
+    config['batch_mode'] = 'truncate_episodes'
     config['log_level'] = 'ERROR'
     config['framework'] = 'tfe'
-    config['horizon'] = 16
-    config['timesteps_per_iteration'] = 8
+    config['timesteps_per_iteration'] = 10
 
     # just use restore to fix it
     tune.run(
