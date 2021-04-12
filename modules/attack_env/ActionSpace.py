@@ -35,17 +35,16 @@ class ActionSpace:
         2  : 53,
         3  : 80,
         4  : 88,
-        5  : 135,
-        6  : 139,
-        7  : 389,
-        8  : 443,
-        9  : 445,
-        10 : 464,
-        11 : 593,
-        12 : 636,
-        13 : 3268,
-        14 : 3269,
-        15 : 3389
+        5  : 139,
+        6  : 389,
+        7  : 443,
+        8  : 445,
+        9 : 464,
+        10 : 593,
+        11 : 636,
+        12 : 3268,
+        13 : 3269,
+        14 : 3389
     }
 
     def __init__(
@@ -83,7 +82,7 @@ class ActionSpace:
         # exploit - the service or vulnerability to exploit
         return spaces.Dict({
             'target'  : spaces.Discrete(targetCount),
-            'port'    : spaces.Discrete(16),
+            'port'    : spaces.Discrete(15),
             'exploit' : spaces.Discrete(13)
         })
 
