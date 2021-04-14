@@ -49,7 +49,7 @@ def arguments():
                         default='', help="use json file instead of nettacker data.")
 
     parser.add_argument("-i", "--iterations", dest='iterations', nargs='?', const=1, type=int,
-                        default=1000, help="Define number of training iterations for RL agent (Default: 100000)")
+                        default=5000, help="Define number of training iterations for RL agent (Default: 100000)")
 
     parser.add_argument("-a", "--actions_per_target", dest='actions', nargs='?', const=1, type=int,
                         default=5, help="Define training number of actions per host that is allowed. (Default: 5)")
@@ -116,13 +116,13 @@ def train_agent(data, nettacker_json, report, args):
 
     # do this otherwise it WILL result in halting. Time to wait for all the async workers.
     # config['min_iter_time_s'] = 10 # least 10 seconds before collection - shouldn't hit but good idea.
-    config['train_batch_size'] = 32
+    config['train_batch_size'] = 64
     config["microbatch_size"] = 16
-    config['min_iter_time_s'] = 0
+    config['min_iter_time_s'] = 20
     config['batch_mode'] = 'truncate_episodes'
     config['log_level'] = 'ERROR'
     config['framework'] = 'tfe'
-    config['timesteps_per_iteration'] = 10
+    config['timesteps_per_iteration'] = 200
 
     # just use restore to fix it
     tune.run(
@@ -131,8 +131,10 @@ def train_agent(data, nettacker_json, report, args):
         config=config,
         checkpoint_freq=15,                       # save after each iterations
         max_failures=15,                          # due to high volattily chances of msfrpc going down for a second are high
-        # restore=<pathhere>,
+        #restore="/home/szuro1/ray_results/Phorcys_A2C_Trial/A2C_phorcys_59b16_00000_0_2021-04-12_15-14-49/checkpoint_1/checkpoint-1",
+        # use resume to resume experiment with the directory of checkpoint
         name="Phorcys_A2C_Trial",
+        # resume="LOCAL",
         checkpoint_at_end=True                   # add checkpoint once done so can continue training.
 
     )

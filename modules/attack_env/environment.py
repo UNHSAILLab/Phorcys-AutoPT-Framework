@@ -37,55 +37,55 @@ class Environment(Env):
     reward_mapping: Dict[str, Dict[str, int]] = {
         'auxiliary/scanner/ftp/ftp_version': {
             'cost'    : 1,
-            'success' : 5
+            'success' : 2
         },
         'auxiliary/scanner/rdp/rdp_scanner': {
             'cost'    : 1,
-            'success' : 5
+            'success' : 2
         },
         'auxiliary/scanner/smb/smb_version': {
             'cost'    : 1,
-            'success' : 5
+            'success' : 2
         },
         'auxiliary/scanner/ssh/ssh_version': {
             'cost'    : 1,
-            'success' : 5
+            'success' : 2
         },
         'auxiliary/scanner/ftp/anonymous': {
             'cost'    : 1,
-            'success' : 10
+            'success' : 5
         },
         'auxiliary/scanner/ftp/ftp_login': {
             'cost'    : 2,
-            'success' : 10
+            'success' : 5
         },
         'auxiliary/scanner/rdp/cve_2019_0708_bluekeep': {
             'cost'    : 2,
-            'success' : 7
+            'success' : 5
         },
         'auxiliary/scanner/smb/smb_login': {
-            'cost'    : 2,
-            'success' : 12
+            'cost'    : 5,
+            'success' : 25
         },
         'auxiliary/scanner/smb/smb_ms17_010': {
-            'cost'    : 1,
-            'success' : 8
+            'cost'    : 2,
+            'success' : 10
         },
         'auxiliary/scanner/ssh/ssh_login': {
-            'cost'    : 2,
-            'success' : 12
+            'cost'    : 5,
+            'success' : 25
         },
         'exploit/unix/ftp/proftpd_133c_backdoor': {
-            'cost'    : 5,
-            'success' : 40
+            'cost'    : 10,
+            'success' : 50
         },
         'exploit/windows/rdp/cve_2019_0708_bluekeep_rce': {
-            'cost'    : 5,
-            'success' : 50
+            'cost'    : 10,
+            'success' : 60
         },
         'exploit/windows/smb/ms17_010_eternalblue': {
-            'cost'    : 5,
-            'success' : 50
+            'cost'    : 10,
+            'success' : 65
         }
     }
 
@@ -168,7 +168,8 @@ class Environment(Env):
             if output == self.HOST_MAX_ACTIONS_OUTPUT:
                 # print(f"DICT: {self.terminal_dict}")
                 # print(f"Target: {target}, has taken MAX ACTIONS!")
-                return updatedObservation, float(0), False, {}
+                # bad action tell it no!
+                return updatedObservation, float(-1), False, {}
 
         # When An Exploit Was Successful Update The Report Data
         if isSuccess: self.report.updateReportData(accessLevel, target, port, exploit, output)
@@ -180,7 +181,7 @@ class Environment(Env):
             print("TERMINAL reached!")
 
         # Returns The Step Back To The Agent
-        return updatedObservation, float(reward), isTerminal, {'done': isTerminal}
+        return updatedObservation, float(reward), isTerminal, {}
 
     # Gets The Cost Based On The Type Of Action
     def _get_reward(self, exploit, success):

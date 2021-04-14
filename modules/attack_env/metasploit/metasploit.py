@@ -426,7 +426,7 @@ class MetasploitInterface:
         """ SETS UP THE VARIABLES AND MODULE INFORMATION"""
         success, user_level = False, ''
 
-        if port == 21 or port == 22:
+        if port == 21 or port == 22 or port == 593:
             return False, '', ''
 
         module, specific_module = self.getModuleInfo(exploit)
