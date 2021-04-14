@@ -126,6 +126,8 @@ class Environment(Env):
             logLevel
         )
 
+        self.num_invalid_actions = 0
+
         # Resets The Environment
         self.reset()
 
@@ -135,7 +137,8 @@ class Environment(Env):
 
     # Resets The State Of The Environment
     def reset(self) -> OrderedDict:
-
+        
+        self.num_invalid_actions = 0
         # Resets Metasploit
         self._metasploitAPI.reset()
 
@@ -169,7 +172,17 @@ class Environment(Env):
                 # print(f"DICT: {self.terminal_dict}")
                 # print(f"Target: {target}, has taken MAX ACTIONS!")
                 # bad action tell it no!
-                return updatedObservation, float(-1), False, {}
+
+                self.num_invalid_actions = self.num_invalid_actions + 1
+
+                numTerminal = False
+
+                if self.num_invalid_actions >= 5:
+                    print('Too many invalid actions hit')
+                    numTerminal = True
+
+
+                return updatedObservation, float(-1), numTerminal, {}
 
         # When An Exploit Was Successful Update The Report Data
         if isSuccess: self.report.updateReportData(accessLevel, target, port, exploit, output)
