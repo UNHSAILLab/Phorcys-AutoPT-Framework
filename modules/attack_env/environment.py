@@ -64,7 +64,7 @@ class Environment(Env):
             'success' : 5
         },
         'auxiliary/scanner/smb/smb_login': {
-            'cost'    : 5,
+            'cost'    : 2,
             'success' : 25
         },
         'auxiliary/scanner/smb/smb_ms17_010': {
@@ -76,15 +76,15 @@ class Environment(Env):
             'success' : 25
         },
         'exploit/unix/ftp/proftpd_133c_backdoor': {
-            'cost'    : 10,
+            'cost'    : 2,
             'success' : 50
         },
         'exploit/windows/rdp/cve_2019_0708_bluekeep_rce': {
-            'cost'    : 10,
+            'cost'    : 2,
             'success' : 60
         },
         'exploit/windows/smb/ms17_010_eternalblue': {
-            'cost'    : 10,
+            'cost'    : 2,
             'success' : 65
         }
     }
@@ -233,12 +233,12 @@ class Environment(Env):
 
         # Updates The Observation If Necessary
         observation = self.observation_space.getObservation(target)
+        accessLevelEnum = self.observation_space.getAccessLevel(accessLevel)
         if isSuccess:
-            accessLevelEnum = self.observation_space.getAccessLevel(accessLevel)
             observation = self.observation_space.updateState(target, accessLevelEnum, port, exploit)
 
         # Returns The Observation Of The Current Target, The Exploit Used, And Whether It Was Successful Or not
-        return observation, accessLevel, target, port, exploit, output, isSuccess
+        return observation, accessLevelEnum, target, port, exploit, output, isSuccess
 
     # Checks Whether The Agent Has Triggered The Terminal State
     def _terminal_state(self, target):

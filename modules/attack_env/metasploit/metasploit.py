@@ -465,6 +465,9 @@ class MetasploitInterface:
         success, user_level = False, ''
         module, specific_module = self.getModuleInfo(exploit)
 
+        if port != 445:
+            False, "", ""
+
         """ CREATES MODULE & SETS UP EXPLOIT """
         exploit = self.client.modules.use(module, specific_module)
         exploit["RHOSTS"] = target

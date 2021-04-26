@@ -49,7 +49,7 @@ def arguments():
                         default='', help="use json file instead of nettacker data.")
 
     parser.add_argument("-i", "--iterations", dest='iterations', nargs='?', const=1, type=int,
-                        default=5000, help="Define number of training iterations for RL agent (Default: 100000)")
+                        default=5000, help="Define number of training iterations for RL agent (Default: 5000)")
 
     parser.add_argument("-a", "--actions_per_target", dest='actions', nargs='?', const=1, type=int,
                         default=5, help="Define training number of actions per host that is allowed. (Default: 5)")
@@ -106,7 +106,7 @@ def train_agent(data, nettacker_json, report, args):
 
 
     # pull default configuration from ray for A2C/A3C
-    config = A3C.a2c.A2C_DEFAULT_CONFIG.copy()
+    config = A3C.DEFAULT_CONFIG.copy()
 
     config['env'] = 'phorcys'
     # config['monitor'] = True # write repsidoe stats to log dir ~/ray_results
@@ -115,7 +115,7 @@ def train_agent(data, nettacker_json, report, args):
     config['num_workers'] = args.workers
 
     # do this otherwise it WILL result in halting. Time to wait for all the async workers.
-    # config['min_iter_time_s'] = 10 # least 10 seconds before collection - shouldn't hit but good idea.
+    config['min_iter_time_s'] = 10 # least 10 seconds before collection - shouldn't hit but good idea.
     config['train_batch_size'] = 64
     config["microbatch_size"] = 16
     config['min_iter_time_s'] = 20
@@ -126,15 +126,15 @@ def train_agent(data, nettacker_json, report, args):
 
     # just use restore to fix it
     tune.run(
-        A3C.A2CTrainer,                         # ray rllib                        # data set to save in ~/ray_results
-        stop={"episodes_total": args.iterations},    # when to stop training
+        A3C.A2CTrainer,                                 # ray rllib                        # data set to save in ~/ray_results
+        stop={"episodes_total": args.iterations},       # when to stop training
         config=config,
-        checkpoint_freq=15,                       # save after each iterations
-        max_failures=15,                          # due to high volattily chances of msfrpc going down for a second are high
-        #restore="/home/szuro1/ray_results/Phorcys_A2C_Trial/A2C_phorcys_59b16_00000_0_2021-04-12_15-14-49/checkpoint_1/checkpoint-1",
+        checkpoint_freq=5,                              # save after each iterations
+        max_failures=100,                               # due to high volattily chances of msfrpc going down for a second are high
         # use resume to resume experiment with the directory of checkpoint
-        name="Phorcys_A2C_Trial",
-        # resume="LOCAL",
+        #name="Phorcys_A2C_Trial",
+        # resume="~/ray_results/A2C_2021-04-21_10-37-56/A2C_phorcys_29aba_00000_0_2021-04-21_10-37-56/checkpoint_95/checkpoint-95",
+        # restore='/home/szuro1/ray_results/A2C_2021-04-23_10-50-40/A2C_phorcys_45977_00000_0_2021-04-23_10-50-40/checkpoint_291/checkpoint-291',
         checkpoint_at_end=True                   # add checkpoint once done so can continue training.
 
     )
@@ -145,6 +145,68 @@ def train_agent(data, nettacker_json, report, args):
     states = env.observation_space.getStates()
 
     report.addStateDataToReport(states)
+
+def use_model(data, nettacker_json, report, args):
+
+    
+
+    report: Report = Report()
+
+    env = Environment(nettacker_json, data, report, actionsToTake=args.actions, logLevel=args.logLevel)
+
+    ray.shutdown()
+
+    # can be security issue to bind 0.0.0.0 done on purpose to view it.
+    # just doing for the purpose of analysis
+    """log_to_driver=False,"""  
+    ray.init(dashboard_host='0.0.0.0', configure_logging=False, logging_level=100, ignore_reinit_error=True, num_cpus=32)
+
+    # register the environment so it is accessible by string name.
+    register_env('phorcys', lambda c: env)
+
+    config = A3C.DEFAULT_CONFIG.copy()
+
+    config['env'] = 'phorcys'
+    config['num_workers'] = 1
+    # config['monitor'] = True # write repsidoe stats to log dir ~/ray_results
+
+    # do this otherwise it WILL result in halting. Time to wait for all the async workers.
+    config['min_iter_time_s'] = 10 # least 10 seconds before collection - shouldn't hit but good idea.
+    config['train_batch_size'] = 64
+    config["microbatch_size"] = 16
+    # config["explore"] = False
+    config['min_iter_time_s'] = 20
+    config['batch_mode'] = 'truncate_episodes'
+    config['log_level'] = 'ERROR'
+    config['framework'] = 'tfe'
+    config['timesteps_per_iteration'] = 200
+
+
+    agent = A3C.A2CTrainer(config=config)
+    agent.restore("/home/szuro1/ray_results/A2C_2021-04-16_15-49-02/A2C_phorcys_cb5b5_00000_0_2021-04-16_15-49-02/checkpoint_150/checkpoint-150")
+
+    policy = agent.workers.local_worker().get_policy()
+    image = f"{dir_path}/images/phorcys_cropped.png"
+
+    epi_reward = 0
+    done = False
+    obs = env.reset()
+
+    while not done:
+        action = agent.compute_action(obs)
+        obs, reward, done, info = env.step(action)
+        epi_reward += reward
+
+    print(f"REWARD: {epi_reward}")
+
+    states = env.observation_space.getStates()
+    pprint.pprint(states)
+
+    report.addStateDataToReport(states)
+
+    image = f"{dir_path}/images/phorcys_cropped.png"
+
+    report.generateReport(image)
 
 
 if __name__ == '__main__':
@@ -190,13 +252,15 @@ if __name__ == '__main__':
         with open(args.json) as json_file:
             nettacker_json = json.load(json_file)
 
+    
     try:
         # Instantiates The Report Class
         report: Report = Report()
         train_agent(data, nettacker_json, report, args)
 
+        # use_model(data, nettacker_json, report, args)
         image = f"{dir_path}/images/phorcys_cropped.png"
 
-        report.generateReport(image)
+        # report.generateReport(image)
     except KeyboardInterrupt:
         ray.shutdown()
