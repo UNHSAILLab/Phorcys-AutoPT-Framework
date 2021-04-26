@@ -39,6 +39,7 @@ class Settings(metaclass=Singleton):
 
         self.target = target
 
+        # self.verbosity = verbosity
         # make sure all values are unpacked.
         for key in self.__dict__:
             if self.__dict__[key] is None:
@@ -94,6 +95,7 @@ class Settings(metaclass=Singleton):
         """
 
         return self.target
+
 
     def get_dict(self) -> dict:
         """ This creates a dictionary for all the necessary settings

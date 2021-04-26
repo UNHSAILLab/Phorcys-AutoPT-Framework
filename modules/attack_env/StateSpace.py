@@ -11,6 +11,7 @@ from abc import ABC
 from collections import OrderedDict
 from enum import Enum
 from sklearn.preprocessing import OneHotEncoder
+from typing import Dict
 from typing import List
 
 # Enum Class AccessLevel
@@ -26,36 +27,34 @@ class AccessLevel(Enum):
 # @author Jordan Zimmitti
 class StateSpace:
 
-    # <editor-fold desc="Class Variables">
+    # <editor-fold desc="Static Variables">
 
-    # An Encoded List Of The Level Of Access Obtained For The Machine
-    accessLevel: numpy.ndarray = []
+    # The Service Options Available
+    serviceOptions: List[List[str]] = [
+        ['auxiliary/scanner/ftp/ftp_version'],
+        ['auxiliary/scanner/rdp/rdp_scanner'],
+        ['auxiliary/scanner/smb/smb_version'],
+        ['auxiliary/scanner/ssh/ssh_version']
+    ]
 
-    # An Encoded List Of The Host Machine's Public IPv4 Address
-    hostAddress: numpy.ndarray = []
-
-    # An Encoded List Of The Open Ports Found On The Host Machine By Nettacker During Recognizance
-    openPorts: numpy.ndarray = []
-
-    # An Encoded List Of The Services Found On The Open Ports By Metasploit
-    services: numpy.ndarray = []
-
-    # An Encoded List Of Successful Vulnerabilities Performed
-    vulnerabilities: numpy.ndarray = []
+    # The Vulnerability Options Available
+    vulnerabilityOptions: List[List[str]] = [
+        ['auxiliary/scanner/ftp/anonymous'],
+        ['auxiliary/scanner/ftp/ftp_login'],
+        ['auxiliary/scanner/rdp/cve_2019_0708_bluekeep'],
+        ['auxiliary/scanner/smb/smb_login'],
+        ['auxiliary/scanner/smb/smb_ms17_010'],
+        ['auxiliary/scanner/ssh/ssh_login'],
+        ['exploit/unix/ftp/proftpd_133c_backdoor'],
+        ['exploit/windows/rdp/cve_2019_0708_bluekeep_rce'],
+        ['exploit/windows/smb/ms17_010_eternalblue'],
+    ]
 
     # The Access Level Options Available
     _accessOptions: List[List[int]] = [
         [AccessLevel.NO_ACCESS.value],
         [AccessLevel.USER_ACCESS.value],
         [AccessLevel.ADMIN_ACCESS.value]
-    ]
-
-    # The Host Address Options Available
-    _hostAddressOptions: List[List[str]] = [
-        ['192.168.1.100'],
-        ['192.168.1.183'],
-        ['192.168.1.200'],
-        ['192.168.1.201']
     ]
 
     # The Port Options Available
@@ -78,28 +77,6 @@ class StateSpace:
         [3389]
     ]
 
-    # The Service Options Available
-    _serviceOptions: List[List[str]] = [
-        ['auxiliary/scanner/ftp/ftp_version'],
-        ['auxiliary/scanner/rdp/rdp_scanner'],
-        ['auxiliary/scanner/smb/smb_version'],
-        ['auxiliary/scanner/ssh/ssh_version']
-    ]
-
-    # The Vulnerability Options Available
-    _vulnerabilityOptions: List[List[str]] = [
-        ['auxiliary/scanner/ftp/anonymous'],
-        ['auxiliary/scanner/ftp/ftp_login'],
-        ['auxiliary/scanner/rdp/cve_2019_0708_bluekeep'],
-        ['auxiliary/scanner/smb/smb_login'],
-        ['auxiliary/scanner/smb/smb_ms17_010'],
-        ['auxiliary/scanner/ssh/ssh_login'],
-        ['exploit/unix/ftp/proftpd_133c_backdoor'],
-        ['exploit/windows/rdp/cve_2019_0708_bluekeep_rce'],
-        ['exploit/windows/smb/ms17_010_eternalblue'],
-        ['exploit/windows/smb/psexec']
-    ]
-
     # </editor-fold>
 
     # Function that initializes the class
@@ -110,17 +87,24 @@ class StateSpace:
     # @param {str}         hostAddress     - The host machines public ipv4 address
     def __init__(
         self,
-        accessLevel     : AccessLevel = AccessLevel.NO_ACCESS,
-        openPorts       : List[int]   = None,
-        services        : List[str]   = None,
-        vulnerabilities : List[str]   = None,
-        hostAddress     : str         = ''
+        accessLevel        : AccessLevel     = AccessLevel.NO_ACCESS,
+        openPorts          : List[int]       = None,
+        services           : List[str]       = None,
+        vulnerabilities    : List[str]       = None,
+        hostAddressOptions : List[List[str]] = None,
+        hostAddress        : str             = ''
     ):
+
+        # Sets The Class Variables
+        self._hostAddressOptions = hostAddressOptions
         self._encodeAccessLevel(accessLevel)
         self._encodeHostAddress(hostAddress)
         self._encodeOpenPorts(openPorts)
         self._encodeServices(services)
         self._encodeVulnerabilities(vulnerabilities)
+
+        # Creates The Default Hosts Array For When There Is No Hosts To Decode
+        self.defaultHostsArray = [0 for _ in range(len(self._hostAddressOptions))]
 
     # Function that decodes the access level from its state representation
     # @return {AccessLevel} The decoded access level
@@ -138,9 +122,9 @@ class StateSpace:
     # Function that decodes the host address from its state representation
     # @return {str} The host machines public ipv4 address
     def decodeHostAddress(self) -> str:
-
+  
         # When There Us No Host Address Saved
-        if (self.hostAddress == [0, 0, 0, 0]).all():
+        if (self.hostAddress == self.defaultHostsArray).all():
             return ''
 
         # Creates The Decoder To Be Fitted With The Space Of The Host Address Options
@@ -197,7 +181,7 @@ class StateSpace:
                 oneHotArray.append(service)
 
         # Creates The Decoder To Be Fitted With The Space Of The Service Options
-        decoder: OneHotEncoder = OneHotEncoder().fit(self._serviceOptions)
+        decoder: OneHotEncoder = OneHotEncoder().fit(self.serviceOptions)
 
         # Gets The Decoded Services As A 2D Array
         npServices: List[List[str]] = decoder.inverse_transform(oneHotArray)
@@ -216,19 +200,19 @@ class StateSpace:
     def decodeVulnerabilities(self) -> List[str]:
 
         # When There Are No Vulnerabilities Saved
-        if (self.vulnerabilities == [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]).all():
+        if (self.vulnerabilities == [0, 0, 0, 0, 0, 0, 0, 0, 0]).all():
             return ['']
 
         # Generate The One Hot Encoded Array
         oneHotArray: List[List[int]] = []
         for index, item in enumerate(self.vulnerabilities):
             if item == 1:
-                vulnerability = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+                vulnerability = [0, 0, 0, 0, 0, 0, 0, 0, 0]
                 vulnerability[index] = 1
                 oneHotArray.append(vulnerability)
 
         # Creates The Decoder To Be Fitted With The Space Of The Vulnerability Options
-        decoder: OneHotEncoder = OneHotEncoder().fit(self._vulnerabilityOptions)
+        decoder: OneHotEncoder = OneHotEncoder().fit(self.vulnerabilityOptions)
 
         # Gets The Decoded Vulnerabilities As A 2D Array
         npVulnerabilities: List[List[str]] = decoder.inverse_transform(oneHotArray)
@@ -242,15 +226,15 @@ class StateSpace:
         # Returns The Decoded List Of Vulnerabilities
         return vulnerabilities
 
-    # Function that gets the service options
-    # @return {List[List[str]]} The service options
-    def getServiceOptions(self) -> List[List[str]]:
-        return self._serviceOptions
+    # Function That Gets The Amount Of Host Addresses In The State
+    # @return {int} The amount of host addresses
+    def getHostAddressCount(self) -> int:
+        return len(self._hostAddressOptions)
 
-    # Function that gets the vulnerability Options
-    # @return {List[List[str]]} The vulnerability options
-    def getVulnerabilityOptions(self) -> List[List[str]]:
-        return self._vulnerabilityOptions
+    # Function That Get Gets The Host Address Options
+    # @return {List[List[str]]} The host address options
+    def getHostAddressOptions(self) -> List[List[str]]:
+        return self._hostAddressOptions
 
     # Function That Prints The State Space Object In A Nicely Formatted Way
     #
@@ -297,7 +281,7 @@ class StateSpace:
         encoder: OneHotEncoder = OneHotEncoder().fit(self._accessOptions)
 
         # Sets The Encoded Access Level To The Access Level State
-        self.accessLevel = numpy.array(encoder.transform(npAccessLevel).toarray()[0]).astype(int)
+        self.accessLevel: numpy.ndarray = numpy.array(encoder.transform(npAccessLevel).toarray()[0]).astype(int)
 
     # Function that encodes the host address for the state using one-hot encoding
     # @param {str} hostAddress - The host machines public ipv4 address
@@ -315,7 +299,7 @@ class StateSpace:
         encoder: OneHotEncoder = OneHotEncoder().fit(self._hostAddressOptions)
 
         # Sets The Encoded Host Address To The Host Address State
-        self.hostAddress = numpy.array(encoder.transform(npHostAddress).toarray()[0]).astype(int)
+        self.hostAddress: numpy.ndarray = numpy.array(encoder.transform(npHostAddress).toarray()[0]).astype(int)
 
     # Function that encodes the open ports for the state using one-hot encoding
     # @param {List[int]} openPorts - A list of the open ports found on the host machine by nettacker
@@ -347,7 +331,7 @@ class StateSpace:
             mergedOpenPorts = numpy.logical_or(mergedOpenPorts, encodedOpenPort)
 
         # Sets The Encoded Open Ports To The Open Port State
-        self.openPorts = mergedOpenPorts.astype(int)
+        self.openPorts: numpy.ndarray = mergedOpenPorts.astype(int)
 
     # Function that encodes the services for the state using one-hot encoding
     # @param {List[str]} services - A list of the services found on the open ports by metasploit
@@ -362,7 +346,7 @@ class StateSpace:
         npServices: List[List[str]] = [[service] for service in services]
 
         # Creates The Encoder To Be Fitted With The Space Of The Service Options
-        encoder: OneHotEncoder = OneHotEncoder().fit(self._serviceOptions)
+        encoder: OneHotEncoder = OneHotEncoder().fit(self.serviceOptions)
 
         # Encodes The Services To A One Hot Encoding
         encodedServices: List[numpy.ndarray] = encoder.transform(npServices).toarray()
@@ -373,7 +357,7 @@ class StateSpace:
             mergedServices = numpy.logical_or(mergedServices, encodedService)
 
         # Sets The Encoded Services To The Services State
-        self.services = mergedServices.astype(int)
+        self.services: numpy.ndarray = mergedServices.astype(int)
 
     # Function that encodes the vulnerabilities for the state using one-hot encoding
     # @param {List[str]} vulnerabilities - A list of successful vulnerabilities performed
@@ -381,48 +365,65 @@ class StateSpace:
 
         # When Their Are No Vulnerabilities Found
         if vulnerabilities is None:
-            self.vulnerabilities = numpy.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+            self.vulnerabilities = numpy.array([0, 0, 0, 0, 0, 0, 0, 0, 0])
             return
 
         # Converts The Vulnerabilities Found To A 2D Array
         npVulnerabilities: List[List[str]] = [[vulnerability] for vulnerability in vulnerabilities]
 
         # Creates The Encoder To Be Fitted With The Space Of The Vulnerability Options
-        encoder: OneHotEncoder = OneHotEncoder().fit(self._vulnerabilityOptions)
+        encoder: OneHotEncoder = OneHotEncoder().fit(self.vulnerabilityOptions)
 
         # Encodes The Vulnerabilities To A One Hot Encoding
         encodedVulnerabilities: List[numpy.ndarray] = encoder.transform(npVulnerabilities).toarray()
 
         # Takes The One Hot Encoded Vulnerabilities And Merges Them
-        mergedVulnerabilities: numpy.ndarray = numpy.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+        mergedVulnerabilities: numpy.ndarray = numpy.array([0, 0, 0, 0, 0, 0, 0, 0, 0])
         for encodedVulnerability in encodedVulnerabilities:
             mergedVulnerabilities = numpy.logical_or(mergedVulnerabilities, encodedVulnerability)
 
         # Sets The Encoded Vulnerabilities To The Vulnerabilities State
-        self.vulnerabilities = mergedVulnerabilities.astype(int)
+        self.vulnerabilities: numpy.ndarray = mergedVulnerabilities.astype(int)
 
 # Python Class StateParser
 # Class That Parses The Json Data And Stores It In A List Of State Spaces
 # @author Jordan Zimmitti
 class StateParser:
 
-    # A List Of The State Spaces Parsed From The Json File
-    stateSpaces: List[StateSpace] = []
-
     # Function that initializes the class
-    # @param {str} fileDirectory - The directory of where the file is stored
-    def __init__(self, fileDirectory: str):
+    # @param {Dict} nettackerJson - The nettacker json data stored in a dictionary
+    def __init__(self, nettackerJson: List[Dict]):
 
-        # Opens The Json File And Loads The Host Data Into A List
-        jsonFile : TextIO     = open(fileDirectory)
-        hostList : List[dict] = json.load(jsonFile)
+        # Gets The Data From The Nettacker Json
+        hostList: List[Dict] = nettackerJson
+
+        # A List Of The State Spaces Parsed From The Json File
+        self.stateSpaces: List[StateSpace] = []
+
+        # Gets All The Host Addresses Found By Nettacker
+        hostOptions: List[List[str]] = self._generateHostAddressOptions(hostList)
 
         # Generates A List Of State Spaces From The Host List
-        self._generateStateSpaces(hostList)
+        self._generateStateSpaces(hostList, hostOptions)
+
+    # Function That Gets All Of The Host Addresses Found By Nettacker
+    # @param {List[dict]} hostList - A List Of Hosts From The Json File
+    # @return {List[List[str]]} All of the host addresses found
+    def _generateHostAddressOptions(self, hostList: List[dict]):
+
+        # Appends Each Host Address Found
+        hostAddressOptions = []
+        for host in hostList:
+            hostAddress: str = self._getHostAddress(host)
+            hostAddressOptions.append([hostAddress])
+
+        # Returns All Of The Host Addresses
+        return hostAddressOptions
 
     # Function That Generates A List Of State Spaces From The Host List
-    # @param {List[dict]} hostList - A List Of Hosts From The Json File
-    def _generateStateSpaces(self, hostList: List[dict]):
+    # @param {List[dict]}      hostList    - A List Of Hosts From The Json File
+    # @param {List[List[str]]} hostOptions - All of the host addresses found
+    def _generateStateSpaces(self, hostList: List[dict], hostOptions: List[List[str]]):
 
         # Parses Each Host In The Host List
         for host in hostList:
@@ -433,9 +434,10 @@ class StateParser:
 
             # Creates A State Space From The Host Data
             newStateSpace = StateSpace(
-                accessLevel = AccessLevel.NO_ACCESS,
-                openPorts   = openPorts,
-                hostAddress = hostAddress,
+                accessLevel        = AccessLevel.NO_ACCESS,
+                openPorts          = openPorts,
+                hostAddressOptions = hostOptions,
+                hostAddress        = hostAddress,
             )
 
             # Adds The State Space To The State Spaces List
@@ -469,34 +471,27 @@ class StateParser:
 # @author Jordan Zimmitti
 class ObservationSpace(spaces.Dict, ABC):
 
-    # Parses The JSON Data To Create The State Space
-    _stateSpaces        : List[StateSpace]
-    _initialStateSpaces : List[StateSpace]
-
-    # The Observation State Space Scope
-    _obvSpace: OrderedDict = OrderedDict()
-
-    # The Generated Initial Observation State
-    _obvStates: List[OrderedDict]
-    _initialObvStates: List[OrderedDict]
-
     # Function that initializes the class
-    def __init__(self):
+    def __init__(self, nettackerJson: List[Dict]):
 
         # Defines The State Space And Initial State Space
-        self._stateSpaces = StateParser('input.json').stateSpaces
-        self._initialStateSpaces = self._stateSpaces
+        self._stateSpaces        : List[StateSpace] = StateParser(nettackerJson).stateSpaces
+        self._initialStateSpaces : List[StateSpace] = self._stateSpaces
+
+        # Gets The Amount Of Host Address Options To Chose From
+        hostAddressCount = self._stateSpaces[0].getHostAddressCount()
 
         # Defines The Scope Of The Observation Space
         self._obvSpace: OrderedDict = OrderedDict({
             'accessLevel'     : spaces.MultiBinary(3),
-            'hostAddress'     : spaces.MultiBinary(4),
+            'hostAddress'     : spaces.MultiBinary(hostAddressCount),
             'openPorts'       : spaces.MultiBinary(16),
             'services'        : spaces.MultiBinary(4),
-            'vulnerabilities' : spaces.MultiBinary(10)
+            'vulnerabilities' : spaces.MultiBinary(9)
         })
 
         # Generates The Observation State Space And Initial Observation State Space
+        self._obvStates: List[OrderedDict] = []
         self._generateObvState()
 
         # Initialize The Gym Space
@@ -519,14 +514,15 @@ class ObservationSpace(spaces.Dict, ABC):
             )
 
         # Saves A Copy Of The Initial Observation State
-        self._initialObvStates = self._obvStates
+        self._initialObvStates: List[OrderedDict] = self._obvStates
 
     # Function that gets the access level enum from the inputted string
     # @param {str} accessLevel - The access level as a string
     @staticmethod
     def getAccessLevel(accessLevel: str) -> AccessLevel:
         if   accessLevel == 'root': return AccessLevel.ADMIN_ACCESS
-        elif accessLevel == 'NT\\AUTHORITY SYSTEM': return AccessLevel.ADMIN_ACCESS
+        elif accessLevel == 'admin': return AccessLevel.ADMIN_ACCESS
+        elif accessLevel == 'NT AUTHORITY\\SYSTEM': return AccessLevel.ADMIN_ACCESS
         elif accessLevel == 'USER_ACCESS': return AccessLevel.USER_ACCESS
         else: return AccessLevel.NO_ACCESS
 
@@ -542,6 +538,11 @@ class ObservationSpace(spaces.Dict, ABC):
         for index, stateSpace in enumerate(self._stateSpaces):
             if stateSpace.decodeHostAddress() == hostAddress:
                 return self._obvStates[index]
+
+    # Gets The Observation State Spaces
+    # Returns all of the updated states within the observation
+    def getStates(self):
+        return self._stateSpaces
 
     # Function That Updates The State With The New Data
     # @param {str}         hostAddress - The target host address
@@ -573,7 +574,7 @@ class ObservationSpace(spaces.Dict, ABC):
 
         # When An Exploit Found Is A Service And Is Not In The List Of Current Services
         currentServices: List[str] or None = currentStateSpace.decodeServices()
-        if currentStateSpace.getServiceOptions().__contains__([exploit]):
+        if StateSpace.serviceOptions.__contains__([exploit]):
             if not currentServices.__contains__(exploit):
                 if currentServices[0] == '':
                     currentServices[0] = exploit
@@ -584,22 +585,23 @@ class ObservationSpace(spaces.Dict, ABC):
 
         # When An Exploit Found Is A Vulnerability And Is Not In The List Of Current Vulnerabilities
         currentVulnerabilities: List[str] or None = currentStateSpace.decodeVulnerabilities()
-        if currentStateSpace.getVulnerabilityOptions().__contains__([exploit]):
-                if not currentVulnerabilities.__contains__(exploit):
-                    if currentVulnerabilities[0] == '':
-                        currentVulnerabilities[0] = exploit
-                    else:
-                        currentVulnerabilities.append(exploit)
+        if StateSpace.vulnerabilityOptions.__contains__([exploit]):
+            if not currentVulnerabilities.__contains__(exploit):
+                if currentVulnerabilities[0] == '':
+                    currentVulnerabilities[0] = exploit
+                else:
+                    currentVulnerabilities.append(exploit)
         elif currentVulnerabilities[0] == '':
             currentVulnerabilities = None
 
         # Updates The Current State With The New Data//
         self._stateSpaces[currentIndex] = StateSpace(
-            accessLevel     = accessLevel,
-            openPorts       = currentOpenPorts,
-            services        = currentServices,
-            vulnerabilities = currentVulnerabilities,
-            hostAddress     = hostAddress
+            accessLevel        = accessLevel,
+            openPorts          = currentOpenPorts,
+            services           = currentServices,
+            vulnerabilities    = currentVulnerabilities,
+            hostAddressOptions = self._stateSpaces[currentIndex].getHostAddressOptions(),
+            hostAddress        = hostAddress
         )
 
         # Updates The Current Observation State With The New Data//
@@ -613,10 +615,3 @@ class ObservationSpace(spaces.Dict, ABC):
 
         # Returns The Updated Observation State
         return self._obvStates[currentIndex]
-
-# obvSpace = ObservationSpace()
-# obvState = obvSpace.getInitialObvState()
-# for state in obvSpace.stateSpaces:
-#     state.print()
-#
-# print(f'\n{obvState}')

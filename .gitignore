@@ -132,3 +132,5 @@ include/
 bin
 .vscode
 pyvenv.cfg
+
+report.html
