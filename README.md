@@ -16,6 +16,14 @@ Penetration testing is a form of ethical hacking where an attack is performed ag
   <img src="https://github.com/UNHSAILLab/Capstone-Automated-Penetration-Testing/blob/master/images/phorcys_arch.png">
 </p>
 
+## Documentation to Setup Phorcys there are several parts to it Please following in order
+
+1. [AWS CloudFormation](documentation/cloud-formation.md)
+2. [Custom AMIs](documentation/custom-ami.md)
+3. [Setting up Python](documentation/python.md)
+4. [Services to Setup](documentation/services.md)
+5. [Report Generation Information](documentation/reporting.md)
+
 
 ### Sources
 
