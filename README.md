@@ -1,10 +1,10 @@
-# Phorcys - Intelligent Penetration Testing using Deep Reinforcement Learning
+# Phorcys
 
 <p align="center">
   <img width="350px" height="350px" src="https://github.com/UNHSAILLab/Capstone-Automated-Penetration-Testing/blob/master/images/phorcys_cropped.png" />
 </p>
 
-Capstone project for using Reinforcement Learning to conduct intelligent penetration tests.
+A Framework for Training and Deployment of RL-Enabled Automated Penetration Testing
 
 ## Abstract
 
