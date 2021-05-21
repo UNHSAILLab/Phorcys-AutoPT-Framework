@@ -4,7 +4,7 @@
   <img width="350px" height="350px" src="https://github.com/UNHSAILLab/Capstone-Automated-Penetration-Testing/blob/master/images/phorcys_cropped.png" />
 </p>
 
-A Framework for Training and Deployment of RL-Enabled Automated Penetration Testing
+A Framework for Training and Deployment of RL-Enabled Penetration Testing Agents
 
 ## Abstract
 
